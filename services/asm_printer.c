@@ -29,6 +29,7 @@ void printChunk(Chunk* chunk, char* name) {
 }
 
 int printInstruction(Chunk* chunk, OpCode code, int offset) {
+    printf("line = %d: ", lineArrayGet(&chunk->lines, offset));
     switch (code) {
         case OP_RETURN:
             return printSimpleInstruction("OP_RETURN", offset);
