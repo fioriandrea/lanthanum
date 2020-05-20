@@ -28,6 +28,13 @@ Value pop(VM* vm) {
 ExecutionResult vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
 #define read_constant() (vm->chunk->constants.values[read_byte()])
+#define binary_op(operator) \
+    do { \
+        Value b = pop(vm); \
+        Value a = pop(vm); \
+        push(vm, a operator b); \
+    } while (0)
+
 
 #ifdef TRACE_EXEC
     printf("VM EXECUTION TRACE:\n");
@@ -35,7 +42,15 @@ ExecutionResult vmRun(VM* vm) {
 
     for (;;) {
 #ifdef TRACE_EXEC
+        printf("\n");
         printInstruction(vm->chunk, *vm->pc, (int) (vm->pc - vm->chunk->code));
+        printf("stack: [");
+        for (Value* start = vm->stack; start < vm->sp; start++) {
+            printValue(*start);
+            printf(" | ");
+        }
+        printf("]\n");
+        printf("\n");
 #endif
         switch (read_byte()) {
             case OP_RET: 
@@ -50,6 +65,26 @@ ExecutionResult vmRun(VM* vm) {
                 {
                     Value constant = read_constant();
                     push(vm, constant);
+                    break;
+                }
+            case OP_ADD:
+                {
+                    binary_op(+);
+                    break;      
+                }
+            case OP_SUB: 
+                {
+                    binary_op(-);
+                    break;      
+                }
+            case OP_MUL:
+                {
+                    binary_op(*);
+                    break;      
+                }
+            case OP_DIV:
+                {
+                    binary_op(/);
                     break;
                 }
             default:

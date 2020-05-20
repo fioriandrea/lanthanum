@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
     constant = writeConstant(&c, 5.2);
     writeChunk(&c, OP_CONST, 3);
     writeChunk(&c, constant, 3);
+    writeChunk(&c, OP_ADD, 5);
     writeChunk(&c, OP_RET, 5);
     vmExecute(&vm, &c);
 
