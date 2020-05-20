@@ -10,13 +10,13 @@ int main(int argc, char **argv) {
     VM vm;
     initVM(&vm);
     initChunk(&c);
-    int constant = writeConstant(&c, 1.2);
+    int constant = writeConstant(&c, 10);
     writeChunk(&c, OP_CONST, 2);
     writeChunk(&c, constant, 2);
-    constant = writeConstant(&c, 5.2);
+    constant = writeConstant(&c, 5);
     writeChunk(&c, OP_CONST, 3);
     writeChunk(&c, constant, 3);
-    writeChunk(&c, OP_ADD, 5);
+    writeChunk(&c, OP_MOD, 5);
     writeChunk(&c, OP_RET, 5);
     vmExecute(&vm, &c);
 

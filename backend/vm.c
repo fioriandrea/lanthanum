@@ -1,9 +1,14 @@
 #include <stdio.h>
+#include <math.h>
 
 #include "vm.h"
 #include "../services/asm_printer.h"
 
 #define TRACE_EXEC
+
+int isInteger(double n) {
+    return (int) n == n;
+}
 
 void resetStack(VM* vm) {
     vm->sp = vm->stack;
@@ -13,6 +18,10 @@ void initVM(VM* vm) {
     vm->chunk = NULL;
     vm->pc = NULL;
     resetStack(vm);
+}
+
+Value peek(VM* vm, int depth) {
+    return vm->sp[-(depth + 1)];
 }
 
 void push(VM* vm, Value val) {
@@ -84,7 +93,34 @@ ExecutionResult vmRun(VM* vm) {
                 }
             case OP_DIV:
                 {
+                    if (peek(vm, 0) == 0) {
+                        // runtime error;
+                        return EXEC_RUNTIME_ERROR;
+                    }
                     binary_op(/);
+                    break;
+                }
+            case OP_MOD:
+                {
+                    if (peek(vm, 0) == 0) {
+                        // runtime error;
+                        return EXEC_RUNTIME_ERROR;
+                    }
+                    if (!isInteger(peek(vm, 0)) || !isInteger(peek(vm, 1))) {
+                        // runtime error;
+                        return EXEC_RUNTIME_ERROR;
+                    }
+                    
+                    Value b = pop(vm); 
+                    Value a = pop(vm); 
+                    push(vm, (Value) (((long) a) % ((long) b)));
+                    break;
+                }
+            case OP_POW:
+                {
+                    Value b = pop(vm);
+                    Value a = pop(vm);
+                    push(vm, pow(a, b));
                     break;
                 }
             default:
