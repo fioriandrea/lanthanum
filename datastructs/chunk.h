@@ -6,7 +6,7 @@
 #include "line_array.h"
 
 typedef enum {
-    OP_RETURN,
+    OP_RET,
     OP_CONST,
 } OpCode;
 

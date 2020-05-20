@@ -7,7 +7,7 @@
 int main(int argc, char **argv) {
     Chunk c;
     initChunk(&c);
-    writeChunk(&c, OP_RETURN, 5);
+    writeChunk(&c, OP_RET, 5);
     int constant = writeConstant(&c, 1.2);
     writeChunk(&c, OP_CONST, 2);
     writeChunk(&c, constant, 2);
