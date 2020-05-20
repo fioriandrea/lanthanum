@@ -31,10 +31,10 @@ void printChunk(Chunk* chunk, char* name) {
 int printInstruction(Chunk* chunk, OpCode code, int offset) {
     printf("line = %d: ", lineArrayGet(&chunk->lines, offset));
     switch (code) {
-        case OP_RETURN:
-            return printSimpleInstruction("OP_RETURN", offset);
+        case OP_RET:
+            return printSimpleInstruction("OP_RET", offset);
         case OP_CONST:
-            return printConstantInstruction("OP_CONSTANT", chunk, offset);
+            return printConstantInstruction("OP_CONST", chunk, offset);
         default:
             printf("Undefined instruction: [opcode = %d]\n", code);
             return offset + 1;
