@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -37,6 +38,8 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->indentStack[0] = 0;
     lexer->indentlen = 1;
     lexer->atFirstIteration = 1;
+    lexer->bracketDepth = 0;
+    lexer->previousType = TOK_NEW_LINE;
 }
 
 static Token makeSpecial(Lexer* lexer, TokenType type, char* msg) {
@@ -101,7 +104,7 @@ static void skipEmptyLines(Lexer* lexer) {
     char* oldCurrent = lexer->currentChar;
     while (!atEnd(lexer)) {
         while (*lexer->currentChar == ' ' || *lexer->currentChar == '\t')
-            lexer->currentChar++;
+        lexer->currentChar++;
         if (*lexer->currentChar == '\n')
             lexer->line++;
         if (*lexer->currentChar != '\n' && *lexer->currentChar != '\0') {
@@ -132,6 +135,11 @@ static int countSpaces(Lexer* lexer) {
 
 static int indentationToken(Lexer* lexer, Token* tok) {
 #define ind_stack_top lexer->indentStack[lexer->indentlen - 1]
+    // don't indent when in brackets or when previous is not new line
+    // or is in line
+    if (lexer->bracketDepth > 0 || lexer->previousType != TOK_NEW_LINE) { 
+        return 0;
+    }
     char* oldcurrent = lexer->currentChar;
     int spaces = countSpaces(lexer);
     if (ind_stack_top == spaces) {
@@ -195,22 +203,34 @@ static Token identifier(Lexer* lexer) {
 }
 
 Token nextToken(Lexer* lexer) {
-    // !lexer->atFirstIteration to not emit a \n if there's one (or more) at the beginning of the file
-    if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
+    if (lexer->bracketDepth > 0) {
         skipEmptyLines(lexer);
-        return makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
+        skipSpaces(lexer);
+        sync(lexer);
+    } else {
+        // !lexer->atFirstIteration to not emit a \n if there's one (or more) at the beginning of the file
+        if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
+            skipEmptyLines(lexer);
+            lexer->previousType = TOK_NEW_LINE;
+            return makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
+        }
+        skipEmptyLines(lexer);
+        sync(lexer);
     }
-    lexer->atFirstIteration = 0;
-    skipEmptyLines(lexer);
-    ignoreComment(lexer);
-    sync(lexer);
-    if (atEnd(lexer))
+    if (atEnd(lexer)) {
+        if (lexer->indentlen > 1) {
+            lexer->indentlen--;
+            return makeSpecial(lexer, TOK_DEDENT, "DEDENT");
+        }
         return makeToken(lexer, TOK_EOF);
+    }
     Token tok = makeError(lexer, "unexpected character");
     if (indentationToken(lexer, &tok)) {
+        lexer->previousType = TOK_NEW_LINE;
         return tok;
     }
 
+    lexer->atFirstIteration = 0;
     char ch = '\0';
     switch (ch = advance(lexer)) {
         case ':': 
@@ -221,21 +241,27 @@ Token nextToken(Lexer* lexer) {
             break;
         case '(':
             tok = makeToken(lexer, TOK_LEFT_ROUND_BRACKET);
+            lexer->bracketDepth++;
             break;
         case ')':
             tok = makeToken(lexer, TOK_RIGHT_ROUND_BRACKET);
+            lexer->bracketDepth--;
             break;
         case '[':
             tok = makeToken(lexer, TOK_LEFT_SQUARE_BRACKET);
+            lexer->bracketDepth++;
             break;
         case ']':
             tok = makeToken(lexer, TOK_RIGHT_SQUARE_BRACKET);
+            lexer->bracketDepth--;
             break;
         case '{':
             tok = makeToken(lexer, TOK_LEFT_CURLY_BRACKET);
+            lexer->bracketDepth++;
             break;
         case '}':
             tok = makeToken(lexer, TOK_RIGHT_CURLY_BRACKET);
+            lexer->bracketDepth--;
             break;
         case '*':
             tok = makeToken(lexer, TOK_STAR);
@@ -288,6 +314,7 @@ Token nextToken(Lexer* lexer) {
             }
     }
     skipSpaces(lexer); // not skipEmptyLines because you'd skip eventual \n after token
+    lexer->previousType = tok.type;
     return tok;
 }
 

@@ -81,6 +81,8 @@ typedef struct {
     int indentStack[INDENT_MAX];
     int indentlen;
     int atFirstIteration;
+    int bracketDepth;
+    TokenType previousType;
 } Lexer;
 
 void initLexer(Lexer* lexer, char* src);
