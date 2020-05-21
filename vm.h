@@ -20,7 +20,7 @@ typedef enum {
 } ExecutionResult;
 
 void initVM(VM* vm);
-ExecutionResult vmExecute(VM* vm, Chunk* chunk);  
+ExecutionResult vmExecute(VM* vm, char* source);  
 void freeVM(VM* vm);
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "vm.h"
 #include "./services/asm_printer.h"
+#include "compiler.h"
 
 #define TRACE_EXEC
 
@@ -135,10 +136,17 @@ static ExecutionResult vmRun(VM* vm) {
 #undef read_constant
 }
 
-ExecutionResult vmExecute(VM* vm, Chunk* chunk) {
-    vm->chunk = chunk;
-    vm->pc = chunk->code;
-    return vmRun(vm);
+ExecutionResult vmExecute(VM* vm, char* source) {
+    Chunk chunk;
+    initChunk(&chunk);
+    Compiler compiler;
+    initCompiler(&compiler, source);
+    compile(&compiler, &chunk);
+    vm->chunk = &chunk;
+    vm->pc = chunk.code;
+    // ExecutionResult result = vmRun(vm);
+    freeCompiler(&compiler);
+    return EXEC_OK;
 }
 
 void freeVM(VM* vm) {
