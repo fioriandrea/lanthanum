@@ -80,6 +80,7 @@ typedef struct {
     int line;
     int indentStack[INDENT_MAX];
     int indentlen;
+    int atStartOfFile;
 } Lexer;
 
 void initLexer(Lexer* lexer, char* src);

@@ -1,6 +1,5 @@
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "lexer.h"
 
@@ -37,6 +36,7 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->line = 0;
     lexer->indentStack[0] = 0;
     lexer->indentlen = 1;
+    lexer->atStartOfFile = 1;
 }
 
 static Token makeSpecial(Lexer* lexer, TokenType type, char* msg) {
@@ -193,10 +193,11 @@ static Token identifier(Lexer* lexer) {
 }
 
 Token nextToken(Lexer* lexer) {
-    if (*lexer->currentChar == '\n' && lexer->currentChar != lexer->beginningChar) {
+    if (*lexer->currentChar == '\n' && !lexer->atStartOfFile) {
         skipEmptyLines(lexer);
         return makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
     }
+    lexer->atStartOfFile = 0;
     skipEmptyLines(lexer);
     sync(lexer);
     if (atEnd(lexer))
