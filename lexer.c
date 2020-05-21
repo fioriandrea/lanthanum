@@ -37,6 +37,7 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->line = 0;
     lexer->indentStack[0] = 0;
     lexer->indentlen = 1;
+    lexer->dedentCount = 0;
     lexer->atFirstIteration = 1;
     lexer->bracketDepth = 0;
     lexer->previousType = TOK_NEW_LINE;
@@ -151,10 +152,12 @@ static int indentationToken(Lexer* lexer, Token* tok) {
         *tok = makeSpecial(lexer, TOK_INDENT, "INDENT");
     } else {
         while (spaces < ind_stack_top) {
+            lexer->dedentCount++;
             lexer->indentlen--;
         }
         if (spaces == ind_stack_top) {
             *tok = makeSpecial(lexer, TOK_DEDENT, "DEDENT");
+            lexer->dedentCount--;
         } else {
             *tok = makeError(lexer, "indentation error");
         }
@@ -202,6 +205,10 @@ static Token identifier(Lexer* lexer) {
 }
 
 Token nextToken(Lexer* lexer) {
+    if (lexer->dedentCount > 0) {
+        lexer->dedentCount--;
+        return makeSpecial(lexer, TOK_DEDENT, "DEDENT");
+    }
     if (lexer->bracketDepth > 0) {
         skipEmptyLines(lexer);
         skipSpaces(lexer);
