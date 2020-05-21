@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -40,7 +39,7 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->dedentCount = 0;
     lexer->atFirstIteration = 1;
     lexer->bracketDepth = 0;
-    lexer->previousType = TOK_NEW_LINE;
+    lexer->atEndOfLine = 1;
 }
 
 static Token makeSpecial(Lexer* lexer, TokenType type, char* msg) {
@@ -136,8 +135,13 @@ static int countSpaces(Lexer* lexer) {
 
 static int indentationToken(Lexer* lexer, Token* tok) {
 #define ind_stack_top lexer->indentStack[lexer->indentlen - 1]
+    if (lexer->dedentCount > 0) {
+        *tok = makeSpecial(lexer, TOK_DEDENT, "DEDENT");
+        lexer->dedentCount--;
+        return 1;
+    }
     // don't indent when in brackets or when previous is not new line
-    if (lexer->bracketDepth > 0 || lexer->previousType != TOK_NEW_LINE) { 
+    if (lexer->bracketDepth > 0 || !lexer->atEndOfLine) { 
         return 0;
     }
     char* oldcurrent = lexer->currentChar;
@@ -205,11 +209,8 @@ static Token identifier(Lexer* lexer) {
 }
 
 Token nextToken(Lexer* lexer) {
-    if (lexer->dedentCount > 0) {
-        lexer->dedentCount--;
-        return makeSpecial(lexer, TOK_DEDENT, "DEDENT");
-    }
     if (lexer->bracketDepth > 0) {
+        // ignore any whiteSpace
         skipEmptyLines(lexer);
         skipSpaces(lexer);
         sync(lexer);
@@ -217,7 +218,7 @@ Token nextToken(Lexer* lexer) {
         // !lexer->atFirstIteration to not emit a \n if there's one (or more) at the beginning of the file
         if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
             skipEmptyLines(lexer);
-            lexer->previousType = TOK_NEW_LINE;
+            lexer->atEndOfLine = 1;
             return makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
         }
         skipEmptyLines(lexer);
@@ -232,7 +233,7 @@ Token nextToken(Lexer* lexer) {
     }
     Token tok = makeError(lexer, "unexpected character");
     if (indentationToken(lexer, &tok)) {
-        lexer->previousType = TOK_NEW_LINE;
+        lexer->atEndOfLine = 1;
         return tok;
     }
 
@@ -320,7 +321,7 @@ Token nextToken(Lexer* lexer) {
             }
     }
     skipSpaces(lexer); // not skipEmptyLines because you'd skip eventual \n after token
-    lexer->previousType = tok.type;
+    lexer->atEndOfLine = 0;
     return tok;
 }
 

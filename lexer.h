@@ -83,7 +83,7 @@ typedef struct {
     int dedentCount;
     int atFirstIteration;
     int bracketDepth;
-    TokenType previousType;
+    int atEndOfLine;
 } Lexer;
 
 void initLexer(Lexer* lexer, char* src);
