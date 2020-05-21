@@ -170,9 +170,10 @@ static Token number(Lexer* lexer) {
 }
 
 static Token string(Lexer* lexer) {
-    while (!atEnd(lexer)) {
-        if (peek(lexer, 0) == '"' && peek(lexer, -1) != '\\') // escape "
-            break;
+    char quote = peek(lexer, -1);
+    while (!atEnd(lexer) && peek(lexer, 0) != quote) {
+        if (peek(lexer, 0) == '\n')
+            lexer->line++;
         advance(lexer);
     }
     if (atEnd(lexer))
@@ -201,6 +202,7 @@ Token nextToken(Lexer* lexer) {
     }
     lexer->atFirstIteration = 0;
     skipEmptyLines(lexer);
+    ignoreComment(lexer);
     sync(lexer);
     if (atEnd(lexer))
         return makeToken(lexer, TOK_EOF);
@@ -274,6 +276,7 @@ Token nextToken(Lexer* lexer) {
         case '<': 
             tok = makeToken(lexer, eat(lexer, '=') ? TOK_LESS_EQUAL : TOK_LESS);
             break;
+        case '\'':
         case '"':
             tok = string(lexer);
             break;
