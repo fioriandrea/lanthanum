@@ -160,7 +160,7 @@ static int indentationToken(Lexer* lexer, Token* tok) {
             *tok = makeError(lexer, "indentation error");
         }
     }
-    // restores old so next time indentationToken is called, the first if is executed guaranteed
+    // restores old so next time indentationToken is called, the ind_stack_top == spaces if is executed guaranteed
     lexer->currentChar = oldcurrent; 
     return 1;
 #undef ind_stack_top
