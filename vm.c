@@ -2,15 +2,15 @@
 #include <math.h>
 
 #include "vm.h"
-#include "../services/asm_printer.h"
+#include "./services/asm_printer.h"
 
 #define TRACE_EXEC
 
-int isInteger(double n) {
+static int isInteger(double n) {
     return (int) n == n;
 }
 
-void resetStack(VM* vm) {
+static void resetStack(VM* vm) {
     vm->sp = vm->stack;
 }
 
@@ -20,21 +20,21 @@ void initVM(VM* vm) {
     resetStack(vm);
 }
 
-Value peek(VM* vm, int depth) {
+static Value peek(VM* vm, int depth) {
     return vm->sp[-(depth + 1)];
 }
 
-void push(VM* vm, Value val) {
+static void push(VM* vm, Value val) {
     *vm->sp = val;
     vm->sp++;
 }
 
-Value pop(VM* vm) {
+static Value pop(VM* vm) {
     vm->sp--;
     return *vm->sp;
 }
 
-ExecutionResult vmRun(VM* vm) {
+static ExecutionResult vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
 #define read_constant() (vm->chunk->constants.values[read_byte()])
 #define binary_op(operator) \

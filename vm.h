@@ -1,8 +1,8 @@
 #ifndef vm_h
 #define vm_h
 
-#include "../datastructs/chunk.h"
-#include "../standardtypes.h"
+#include "./datastructs/chunk.h"
+#include "./standardtypes.h"
 
 #define MAX_STACK 256
 
