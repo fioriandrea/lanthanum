@@ -136,7 +136,6 @@ static int countSpaces(Lexer* lexer) {
 static int indentationToken(Lexer* lexer, Token* tok) {
 #define ind_stack_top lexer->indentStack[lexer->indentlen - 1]
     // don't indent when in brackets or when previous is not new line
-    // or is in line
     if (lexer->bracketDepth > 0 || lexer->previousType != TOK_NEW_LINE) { 
         return 0;
     }
