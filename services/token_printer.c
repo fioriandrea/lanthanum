@@ -1,0 +1,63 @@
+#include <stdio.h>
+
+#include "token_printer.h"
+
+static void printNamedToken(Token tok, char* name) {
+    printf("%s[line: %d]: '%.*s'\n", name, tok.line, tok.length, tok.start);
+}
+
+void printToken(Token tok) {
+#define TOKEN_PRINT_CASE(toktype) case toktype: printNamedToken(tok, #toktype); break;
+    switch (tok.type) {
+        TOKEN_PRINT_CASE(TOK_COLON)
+            TOKEN_PRINT_CASE(TOK_COMMA)
+            TOKEN_PRINT_CASE(TOK_LEFT_ROUND_BRACKET)
+            TOKEN_PRINT_CASE(TOK_RIGHT_ROUND_BRACKET)
+            TOKEN_PRINT_CASE(TOK_LEFT_SQUARE_BRACKET)
+            TOKEN_PRINT_CASE(TOK_RIGHT_SQUARE_BRACKET)
+            TOKEN_PRINT_CASE(TOK_LEFT_CURLY_BRACKET)
+            TOKEN_PRINT_CASE(TOK_RIGHT_CURLY_BRACKET)
+            TOKEN_PRINT_CASE(TOK_STAR)
+            TOKEN_PRINT_CASE(TOK_MINUS)
+            TOKEN_PRINT_CASE(TOK_SLASH)
+            TOKEN_PRINT_CASE(TOK_CIRCUMFLEX)
+            TOKEN_PRINT_CASE(TOK_PERCENTAGE)
+            TOKEN_PRINT_CASE(TOK_QUESTION_MARK)
+            TOKEN_PRINT_CASE(TOK_EXCLAMATION_MARK)
+            TOKEN_PRINT_CASE(TOK_NOT_EQUAL)
+            TOKEN_PRINT_CASE(TOK_EQUAL)
+            TOKEN_PRINT_CASE(TOK_EQUAL_EQUAL)
+            TOKEN_PRINT_CASE(TOK_ARROW)
+            TOKEN_PRINT_CASE(TOK_PLUS)
+            TOKEN_PRINT_CASE(TOK_PLUS_PLUS)
+            TOKEN_PRINT_CASE(TOK_GREATER)
+            TOKEN_PRINT_CASE(TOK_GREATER_EQUAL)
+            TOKEN_PRINT_CASE(TOK_LESS)
+            TOKEN_PRINT_CASE(TOK_LESS_EQUAL)
+            TOKEN_PRINT_CASE(TOK_IDENTIFIER)
+            TOKEN_PRINT_CASE(TOK_STRING)
+            TOKEN_PRINT_CASE(TOK_NUMBER)
+            TOKEN_PRINT_CASE(TOK_AND)
+            TOKEN_PRINT_CASE(TOK_OR)
+            TOKEN_PRINT_CASE(TOK_XOR)
+            TOKEN_PRINT_CASE(TOK_IF)
+            TOKEN_PRINT_CASE(TOK_ELIF)
+            TOKEN_PRINT_CASE(TOK_ELSE)
+            TOKEN_PRINT_CASE(TOK_TRUE)
+            TOKEN_PRINT_CASE(TOK_FALSE)
+            TOKEN_PRINT_CASE(TOK_FUNC)
+            TOKEN_PRINT_CASE(TOK_RET)
+            TOKEN_PRINT_CASE(TOK_LET)
+            TOKEN_PRINT_CASE(TOK_WHILE)
+            TOKEN_PRINT_CASE(TOK_PRINT)
+            TOKEN_PRINT_CASE(TOK_NIHL)
+            TOKEN_PRINT_CASE(TOK_BREAK)
+            TOKEN_PRINT_CASE(TOK_CONTINUE)
+            TOKEN_PRINT_CASE(TOK_INDENT)
+            TOKEN_PRINT_CASE(TOK_DEDENT)
+            TOKEN_PRINT_CASE(TOK_NEW_LINE)
+            TOKEN_PRINT_CASE(TOK_ERROR)
+            TOKEN_PRINT_CASE(TOK_EOF)
+    }
+#undef TOKEN_PRINT_CASE
+}
