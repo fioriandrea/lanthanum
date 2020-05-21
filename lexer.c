@@ -36,7 +36,7 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->line = 0;
     lexer->indentStack[0] = 0;
     lexer->indentlen = 1;
-    lexer->atStartOfFile = 1;
+    lexer->atFirstIteration = 1;
 }
 
 static Token makeSpecial(Lexer* lexer, TokenType type, char* msg) {
@@ -135,7 +135,7 @@ static int indentationToken(Lexer* lexer, Token* tok) {
     char* oldcurrent = lexer->currentChar;
     int spaces = countSpaces(lexer);
     if (ind_stack_top == spaces) {
-        sync(lexer);
+        sync(lexer); // sync to avoid having indentation in token's lexeme
         return 0;
     }
     if (ind_stack_top < spaces) {
@@ -152,7 +152,8 @@ static int indentationToken(Lexer* lexer, Token* tok) {
             *tok = makeError(lexer, "indentation error");
         }
     }
-    lexer->currentChar = oldcurrent;
+    // restores old so next time indentationToken is called, the first if is executed guaranteed
+    lexer->currentChar = oldcurrent; 
     return 1;
 #undef ind_stack_top
 }
@@ -193,11 +194,12 @@ static Token identifier(Lexer* lexer) {
 }
 
 Token nextToken(Lexer* lexer) {
-    if (*lexer->currentChar == '\n' && !lexer->atStartOfFile) {
+    // !lexer->atFirstIteration to not emit a \n if there's one (or more) at the beginning of the file
+    if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
         skipEmptyLines(lexer);
         return makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
     }
-    lexer->atStartOfFile = 0;
+    lexer->atFirstIteration = 0;
     skipEmptyLines(lexer);
     sync(lexer);
     if (atEnd(lexer))
@@ -282,7 +284,7 @@ Token nextToken(Lexer* lexer) {
                 tok = identifier(lexer);
             }
     }
-    skipSpaces(lexer);
+    skipSpaces(lexer); // not skipEmptyLines because you'd skip eventual \n after token
     return tok;
 }
 
