@@ -257,6 +257,7 @@ Token nextToken(Lexer* lexer) {
     if (processBoundaries(lexer, &tok)) {
         return tok;
     }
+    sync(lexer);
     lexer->atFirstIteration = 0;
     tok = makeError(lexer, "unexpected character");
 
