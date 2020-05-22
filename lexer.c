@@ -42,22 +42,26 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->atEndOfLine = 1;
 }
 
-static Token makeSpecial(Lexer* lexer, TokenType type, char* msg) {
+static Token makeGeneralToken(Lexer* lexer, TokenType type, char* start, int length) {
+    if (type == TOK_NEW_LINE || type == TOK_INDENT || type == TOK_DEDENT)
+        lexer->atEndOfLine = 1;
+    else
+        lexer->atEndOfLine = 0;
     Token tok;
-    tok.start = msg;
-    tok.length = strlen(msg);
+    tok.start = start;
+    tok.length = length;
     tok.type = type;
     tok.line = lexer->line;
     return tok;
 }
 
+static Token makeSpecial(Lexer* lexer, TokenType type, char* msg) {
+    return makeGeneralToken(lexer, type, msg, strlen(msg));
+}
+
 static Token makeToken(Lexer* lexer, TokenType type) {
-    Token tok;
-    tok.start = lexer->beginningChar;
-    tok.length = (int) (lexer->currentChar - lexer->beginningChar);
-    tok.type = type;
-    tok.line = lexer->line;
-    return tok;
+    return makeGeneralToken(lexer, type, lexer->beginningChar, 
+            (int) (lexer->currentChar - lexer->beginningChar));
 }
 
 static Token makeError(Lexer* lexer, char* msg) {
@@ -133,7 +137,66 @@ static int countSpaces(Lexer* lexer) {
     return count;
 }
 
-static int indentationToken(Lexer* lexer, Token* tok) {
+static Token number(Lexer* lexer) {
+    while (!atEnd(lexer) && isDigit(peek(lexer, 0)))
+        advance(lexer);
+    if (peek(lexer, 0) == '.' && isDigit(peek(lexer, 1))) {
+        advance(lexer); // eat .
+        while (!atEnd(lexer) && isDigit(peek(lexer, 0)))
+            advance(lexer);
+    }
+    return makeToken(lexer, TOK_NUMBER);
+}
+
+static Token string(Lexer* lexer) {
+    char quote = peek(lexer, -1);
+    while (!atEnd(lexer) && peek(lexer, 0) != quote) {
+        if (peek(lexer, 0) == '\n')
+            lexer->line++;
+        advance(lexer);
+    }
+    if (atEnd(lexer))
+        return makeError(lexer, "unclosed string");
+    advance(lexer);
+    return makeToken(lexer, TOK_STRING);
+}
+
+static Token identifier(Lexer* lexer) {
+    while (!atEnd(lexer) && isNonStartIdChar(peek(lexer, 0)))
+        advance(lexer);
+    for (Keyword* kw = keywords; kw->lexeme != NULL; kw++) {
+        if (kw->length == (int) (lexer->currentChar - lexer->beginningChar)
+                && memcmp(kw->lexeme, lexer->beginningChar, kw->length) == 0) {
+            return makeToken(lexer, kw->type);
+        } 
+    }
+    return makeToken(lexer, TOK_IDENTIFIER);
+}
+
+static int processNewLines(Lexer* lexer, Token* tok)  {
+    // !lexer->atFirstIteration to not emit a \n if there's one (or more) \n at the beginning of the file
+    if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
+        skipEmptyLines(lexer);
+        *tok = makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
+        return 1;
+    }
+    return 0;
+}
+
+static int processEOF(Lexer* lexer, Token* tok) {
+    if (atEnd(lexer)) {
+        if (lexer->indentlen > 1) {
+            lexer->indentlen--;
+            *tok = makeSpecial(lexer, TOK_DEDENT, "DEDENT");
+            return 1;
+        }
+        *tok = makeToken(lexer, TOK_EOF);
+        return 1;
+    }
+    return 0;
+}
+
+static int processIndentation(Lexer* lexer, Token* tok) {
 #define ind_stack_top lexer->indentStack[lexer->indentlen - 1]
     if (lexer->dedentCount > 0) {
         *tok = makeSpecial(lexer, TOK_DEDENT, "DEDENT");
@@ -172,72 +235,31 @@ static int indentationToken(Lexer* lexer, Token* tok) {
 #undef ind_stack_top
 }
 
-static Token number(Lexer* lexer) {
-    while (!atEnd(lexer) && isDigit(peek(lexer, 0)))
-        advance(lexer);
-    if (peek(lexer, 0) == '.' && isDigit(peek(lexer, 1))) {
-        advance(lexer); // eat .
-        while (!atEnd(lexer) && isDigit(peek(lexer, 0)))
-            advance(lexer);
-    }
-    return makeToken(lexer, TOK_NUMBER);
-}
-
-static Token string(Lexer* lexer) {
-    char quote = peek(lexer, -1);
-    while (!atEnd(lexer) && peek(lexer, 0) != quote) {
-        if (peek(lexer, 0) == '\n')
-            lexer->line++;
-        advance(lexer);
-    }
-    if (atEnd(lexer))
-        return makeError(lexer, "unclosed string");
-    advance(lexer);
-    return makeToken(lexer, TOK_STRING);
-}
-
-static Token identifier(Lexer* lexer) {
-    while (!atEnd(lexer) && isNonStartIdChar(peek(lexer, 0)))
-        advance(lexer);
-    for (Keyword* kw = keywords; kw->lexeme != NULL; kw++) {
-        if (kw->length == (int) (lexer->currentChar - lexer->beginningChar)
-                && memcmp(kw->lexeme, lexer->beginningChar, kw->length) == 0) {
-            return makeToken(lexer, kw->type);
-        } 
-    }
-    return makeToken(lexer, TOK_IDENTIFIER);
-}
-
-Token nextToken(Lexer* lexer) {
+static int processBoundaries(Lexer* lexer, Token* tok) {
     if (lexer->bracketDepth > 0) {
         // ignore any whiteSpace
         skipEmptyLines(lexer);
         skipSpaces(lexer);
         sync(lexer);
+        return 0;
+    }
+    if (!lexer->atEndOfLine) {
+        return processNewLines(lexer, tok);
     } else {
-        // !lexer->atFirstIteration to not emit a \n if there's one (or more) at the beginning of the file
-        if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
-            skipEmptyLines(lexer);
-            lexer->atEndOfLine = 1;
-            return makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
-        }
         skipEmptyLines(lexer);
         sync(lexer);
+        return processEOF(lexer, tok) || processIndentation(lexer, tok);
     }
-    if (atEnd(lexer)) {
-        if (lexer->indentlen > 1) {
-            lexer->indentlen--;
-            return makeSpecial(lexer, TOK_DEDENT, "DEDENT");
-        }
-        return makeToken(lexer, TOK_EOF);
-    }
-    Token tok = makeError(lexer, "unexpected character");
-    if (indentationToken(lexer, &tok)) {
-        lexer->atEndOfLine = 1;
+}
+
+Token nextToken(Lexer* lexer) {
+    Token tok;
+    if (processBoundaries(lexer, &tok)) {
         return tok;
     }
-
     lexer->atFirstIteration = 0;
+    tok = makeError(lexer, "unexpected character");
+
     char ch = '\0';
     switch (ch = advance(lexer)) {
         case ':': 
