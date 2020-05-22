@@ -106,23 +106,21 @@ static int eat(Lexer* lexer, char c) {
 
 static void skipEmptyLines(Lexer* lexer) {
     char* oldCurrent = lexer->currentChar;
-    while (*lexer->currentChar == ' ' || *lexer->currentChar == '\t' || *lexer->currentChar == '\n') {
-        lexer->currentChar++;
+    while (peek(lexer, 0) == ' ' || peek(lexer, 0) == '\t' || peek(lexer, 0) == '\n') {
         if (*lexer->currentChar == '\n') {
             lexer->line++;
-            oldCurrent = lexer->currentChar + 1;
+            oldCurrent = lexer->currentChar + 1; // + 1 to skip just matched \n
         }
+        advance(lexer);
     }
-    if (*lexer->currentChar != '\0') {
+    if (!atEnd(lexer)) {
         lexer->currentChar = oldCurrent;
-    } else {
-        oldCurrent = lexer->currentChar;
-    }
+    } 
 }
 
 static void skipSpaces(Lexer* lexer) {
-    while (!atEnd(lexer) && (*lexer->currentChar == ' ' || *lexer->currentChar == '\t'))
-        lexer->currentChar++;
+    while (peek(lexer, 0) == ' ' || peek(lexer, 0) == '\t')
+        advance(lexer);
 }
 
 static int countSpaces(Lexer* lexer) {
