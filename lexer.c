@@ -177,13 +177,14 @@ static Token identifier(Lexer* lexer) {
 static int processNewLines(Lexer* lexer, Token* tok)  {
     // !lexer->atFirstIteration to not emit a \n if there's one (or more) \n at the beginning of the file
     // also, if lexer is already at eol, don't emit another \n
+    int res = 0;
     if (!lexer->atEndOfLine && *lexer->currentChar == '\n' && !lexer->atFirstIteration) {
         *tok = makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
-        skipEmptyLines(lexer);
-        sync(lexer);
-        return 1;
+        res = 1;
     }
-    return 0;
+    skipEmptyLines(lexer);
+    sync(lexer);
+    return res;
 }
 
 static int processEOF(Lexer* lexer, Token* tok) {
@@ -244,14 +245,9 @@ static int processBoundaries(Lexer* lexer, Token* tok) {
         skipEmptyLines(lexer);
         skipSpaces(lexer);
         sync(lexer);
-        return 0;
+        return processEOF(lexer, tok);
     }
-    if (processNewLines(lexer, tok)) {
-        return 1;
-    } 
-    skipEmptyLines(lexer);
-    sync(lexer);
-    return processEOF(lexer, tok) || processIndentation(lexer, tok);
+    return processNewLines(lexer, tok) || processEOF(lexer, tok) || processIndentation(lexer, tok);
 
 }
 
