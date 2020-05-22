@@ -127,7 +127,6 @@ void initCompiler(Compiler* compiler, char* source) {
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
-    printToken(compiler->current);
     writeChunk(compilingChunk(compiler), byte, compiler->current.line);
 }
 
@@ -161,8 +160,8 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
 }
 
 static void numberExpression(Compiler* compiler) {
-    Value val = strtod(compiler->current.start, NULL);
-    emitConstant(compiler, val);
+    double val = strtod(compiler->current.start, NULL);
+    emitConstant(compiler, to_vnumber(val));
     advance(compiler);
 }
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdarg.h>
 
 #include "vm.h"
 #include "./services/asm_printer.h"
@@ -10,6 +11,11 @@
 
 static int isInteger(double n) {
     return (int) n == n;
+}
+
+static int isTruthy(Value val) {
+    return !(is_nihl(val) || (is_bool(val) && !as_cbool(val)) ||
+            (is_number(val) && as_cnumber(val) == 0));
 }
 
 static void resetStack(VM* vm) {
@@ -36,24 +42,41 @@ static Value pop(VM* vm) {
     return *vm->sp;
 }
 
+static void runtimeError(VM* vm, char* format, ...) {
+    int instruction = vm->pc - vm->chunk->code - 1; 
+    int line = lineArrayGet(&vm->chunk->lines, instruction);         
+
+    va_list args;                                    
+    va_start(args, format);                          
+    fprintf(stderr, "runtime error [line %d] in script: ", line);  
+    vfprintf(stderr, format, args);                  
+    va_end(args);                                    
+    fputs("\n", stderr);
+    resetStack(vm);                                    
+}    
+
 static ExecutionResult vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
 #define read_constant() (vm->chunk->constants.values[read_byte()])
 #define binary_op(operator) \
     do { \
-        Value b = pop(vm); \
-        Value a = pop(vm); \
-        push(vm, a operator b); \
+        if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) { \
+            runtimeError(vm, "operand must be numbers"); \
+            return EXEC_RUNTIME_ERROR; \
+        } \
+        double b = as_cnumber(pop(vm)); \
+        double a = as_cnumber(pop(vm)); \
+        push(vm, to_vnumber(a operator b)); \
     } while (0)
 
 
 #ifdef PRINT_CODE
     printf("VM CODE:\n");
     printChunk(vm->chunk, "code");
-    printf("\n");
-    for (int i = 0; i < vm->chunk->lines.count; i++) {
-        printf("{l: %d, c: %d}\n", vm->chunk->lines.lines[i].line, vm->chunk->lines.lines[i].count);
-    }
+    // printf("\n");
+    // for (int i = 0; i < vm->chunk->lines.count; i++) {
+    //     printf("{l: %d, c: %d}\n", vm->chunk->lines.lines[i].line, vm->chunk->lines.lines[i].count);
+    // }
     printf("\n");
 #endif
 
@@ -90,8 +113,12 @@ static ExecutionResult vmRun(VM* vm) {
                 }
             case OP_NEGATE:
                 {
+                    if (!is_number(peek(vm, 0))) {
+                        runtimeError(vm, "only numbers can be negated");
+                        return EXEC_RUNTIME_ERROR;
+                    }
                     Value a = pop(vm);
-                    push(vm, -a);
+                    push(vm, to_vnumber(-as_cnumber(a)));
                     break;
                 }
             case OP_ADD:
@@ -111,39 +138,74 @@ static ExecutionResult vmRun(VM* vm) {
                 }
             case OP_DIV:
                 {
-                    if (peek(vm, 0) == 0) {
-                        // runtime error;
+                    if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) {
+                        runtimeError(vm, "operands must be numbers");
                         return EXEC_RUNTIME_ERROR;
                     }
-                    binary_op(/);
+                    if (as_cnumber(peek(vm, 0)) == 0) {
+                        runtimeError(vm, "cannot divide by zero (/ 0)");
+                        return EXEC_RUNTIME_ERROR;
+                    }
+                    double b = as_cnumber(pop(vm)); 
+                    double a = as_cnumber(pop(vm)); 
+                    push(vm, to_vnumber(a / b));
                     break;
                 }
             case OP_MOD:
                 {
-                    if (peek(vm, 0) == 0) {
-                        // runtime error;
+                    if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) {
+                        runtimeError(vm, "operands must be numbers");
                         return EXEC_RUNTIME_ERROR;
                     }
-                    if (!isInteger(peek(vm, 0)) || !isInteger(peek(vm, 1))) {
-                        // runtime error;
+                    if (as_cnumber(peek(vm, 0)) == 0) {
+                        runtimeError(vm, "cannot divide by 0 (% 0)");
                         return EXEC_RUNTIME_ERROR;
                     }
-                    
-                    Value b = pop(vm); 
-                    Value a = pop(vm); 
-                    push(vm, (Value) (((long) a) % ((long) b)));
+                    if (!isInteger(as_cnumber(peek(vm, 0))) || !isInteger(as_cnumber(peek(vm, 1)))) {
+                        runtimeError(vm, "only integer allowed when using %");
+                        return EXEC_RUNTIME_ERROR;
+                    }
+
+                    double b = as_cnumber(pop(vm)); 
+                    double a = as_cnumber(pop(vm)); 
+                    push(vm, to_vnumber(((long) a) % ((long) b)));
                     break;
                 }
             case OP_POW:
                 {
-                    Value b = pop(vm);
-                    Value a = pop(vm);
-                    push(vm, pow(a, b));
+                    if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) {
+                        runtimeError(vm, "operands must be numbers");
+                        return EXEC_RUNTIME_ERROR;
+                    }
+                    double b = as_cnumber(pop(vm)); 
+                    double a = as_cnumber(pop(vm)); 
+                    push(vm, to_vnumber(pow(a, b)));
+                    break;
+                }
+            case OP_CONST_NIHL:
+                {
+                    push(vm, to_vnihl());
+                    break;
+                }
+            case OP_CONST_TRUE:
+                {
+                    push(vm, to_vbool(1));
+                    break;
+                }
+            case OP_CONST_FALSE:
+                {
+                    push(vm, to_vbool(0));
+                    break;
+                }
+            case OP_NOT:
+                {
+                    Value val = pop(vm);
+                    push(vm, to_vbool(!isTruthy(val)));
                     break;
                 }
             default:
                 {
-                    // runtime error;
+                    runtimeError(vm, "unknown instruction");
                     return EXEC_RUNTIME_ERROR;
                     break;
                 }

@@ -9,7 +9,17 @@ static int printSimpleInstruction(char* instname, int offset) {
 }
 
 void printValue(Value val) {
-    printf("%f", val);
+    switch (val.type) {
+        case VALUE_BOOL:
+            printf("%s", as_cbool(val) ? "true" : "false");
+            break;
+        case VALUE_NUMBER:
+            printf("%g", as_cnumber(val));
+            break;
+        case VALUE_NIHL:
+            printf("nihl");
+            break;
+    }
 }
 
 static int printConstantInstruction(char* instname, Chunk* chunk, int offset) {
@@ -55,6 +65,8 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             return printSimpleInstruction("OP_CONST_FALSE", offset);
         case OP_CONST_NIHL:
             return printSimpleInstruction("OP_CONST_NIHL", offset);
+        case OP_NOT:
+            return printSimpleInstruction("OP_NOT", offset);
         default:
             printf("Undefined instruction: [opcode = %d]\n", code);
             return offset + 1;
