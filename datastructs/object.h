@@ -5,9 +5,12 @@ typedef enum {
     OBJ_STRING,
 } ObjType;
 
-typedef struct {
+struct sObj {
     ObjType type;
-} Obj;
+    struct sObj* next;
+};
+
+typedef struct sObj Obj;
 
 typedef struct {
     Obj obj;
@@ -17,5 +20,6 @@ typedef struct {
 
 ObjString* copyString(char* chars, int length);
 ObjString* takeString(char* chars, int length);
+void freeObject(Obj* object);
 
 #endif

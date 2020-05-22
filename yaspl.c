@@ -4,6 +4,7 @@
 #include "datastructs/chunk.h"
 #include "services/asm_printer.h"
 #include "services/token_printer.h"
+#include "services/memory.h"
 #include "vm.h"
 #include "lexer.h"
 

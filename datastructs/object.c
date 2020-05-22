@@ -9,6 +9,8 @@
 Obj* allocateObj(ObjType type, size_t size) {
     Obj* obj = allocate_pointer(Obj, size);
     obj->type = type;
+    obj->next = objList;
+    objList = obj;
     return obj;
 }
 
@@ -24,4 +26,16 @@ ObjString* takeString(char* chars, int length) {
     string->chars = chars;
     string->length = length;
     return string;
+}
+
+void freeObject(Obj* object) {
+    switch (object->type) {                                 
+        case OBJ_STRING: 
+            {                                    
+                ObjString* string = (ObjString*) object;             
+                free_array(char, string->chars, string->length + 1);
+                free_pointer(object, sizeof(ObjString));                            
+                break;                                              
+            }                                                     
+    }
 }

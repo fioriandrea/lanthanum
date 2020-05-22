@@ -2,6 +2,9 @@
 #define memory_h
 
 #include "../standardtypes.h"
+#include "../datastructs/object.h"
+
+extern Obj* objList;
 
 #define compute_capacity(oldcap) \
     ((oldcap) < 8 ? 8 : (oldcap) * 2)
