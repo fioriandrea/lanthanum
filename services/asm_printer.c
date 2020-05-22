@@ -2,10 +2,21 @@
 
 #include "asm_printer.h"
 #include "../standardtypes.h"
+#include "../datastructs/value.h"
+#include "../datastructs/object.h"
 
 static int printSimpleInstruction(char* instname, int offset) {
     printf("%s\n", instname);
     return offset + 1;
+}
+
+void printObj(Value val) {
+    Obj* obj = as_obj(val);
+    switch (obj->type) {
+        case OBJ_STRING:
+            printf("%s", as_cstring(val));
+            break;
+    }
 }
 
 void printValue(Value val) {
@@ -19,6 +30,8 @@ void printValue(Value val) {
         case VALUE_NIHL:
             printf("nihl");
             break;
+        case VALUE_OBJ:
+            printObj(val);
     }
 }
 
@@ -79,6 +92,8 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             return printSimpleInstruction("OP_GREATER_EQUAL", offset);
         case OP_EQUAL:
             return printSimpleInstruction("OP_EQUAL", offset);
+        case OP_CONCAT:
+            return printSimpleInstruction("OP_CONCAT", offset);
         default:
             printf("Undefined instruction: [opcode = %d]\n", code);
             return offset + 1;

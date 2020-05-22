@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include "vm.h"
 #include "./services/asm_printer.h"
+#include "./services/memory.h"
+#include "./datastructs/value.h"
 #include "compiler.h"
 
 #define TRACE_EXEC
@@ -18,6 +21,10 @@ static int isTruthy(Value val) {
             (is_number(val) && as_cnumber(val) == 0));
 }
 
+static int valuesIntegers(Value a, Value b) {
+    return isInteger(as_cnumber(a)) && isInteger(as_cnumber(b));
+}
+
 static int valuesEqual(Value a, Value b) {
     if (a.type != b.type)
         return 0;
@@ -25,7 +32,27 @@ static int valuesEqual(Value a, Value b) {
         case VALUE_NIHL: return 1;
         case VALUE_NUMBER: return as_cnumber(a) == as_cnumber(b);
         case VALUE_BOOL: return as_cbool(a) == as_cbool(b);
+        case VALUE_OBJ: return as_obj(a) == as_obj(b);
     }
+}
+
+static int valuesConcatenable(Value a, Value b) {
+    return is_string(a) && is_string(b);
+}
+
+static int valuesNumbers(Value a, Value b) {
+    return is_number(a) && is_number(b);
+}
+
+static Value concatenate(Value a, Value b) {
+    ObjString* sa = as_string(a);
+    ObjString* sb = as_string(b);
+    int length = sa->length + sb->length;
+    char* chars = allocate_block(char, length);
+    memcpy(chars, sa->chars, sa->length);
+    memcpy(chars + sa->length, sb->chars, sb->length);
+    chars[length] = '\0'; 
+    return to_vobj(takeString(chars, length));
 }
 
 static void resetStack(VM* vm) {
@@ -70,7 +97,7 @@ static ExecutionResult vmRun(VM* vm) {
 #define read_constant() (vm->chunk->constants.values[read_byte()])
 #define binary_op(operator, destination) \
     do { \
-        if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) { \
+        if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
             runtimeError(vm, "operand must be numbers"); \
             return EXEC_RUNTIME_ERROR; \
         } \
@@ -148,7 +175,7 @@ static ExecutionResult vmRun(VM* vm) {
                 }
             case OP_DIV:
                 {
-                    if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) {
+                    if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
                         return EXEC_RUNTIME_ERROR;
                     }
@@ -163,7 +190,7 @@ static ExecutionResult vmRun(VM* vm) {
                 }
             case OP_MOD:
                 {
-                    if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) {
+                    if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
                         return EXEC_RUNTIME_ERROR;
                     }
@@ -171,7 +198,7 @@ static ExecutionResult vmRun(VM* vm) {
                         runtimeError(vm, "cannot divide by 0 (% 0)");
                         return EXEC_RUNTIME_ERROR;
                     }
-                    if (!isInteger(as_cnumber(peek(vm, 0))) || !isInteger(as_cnumber(peek(vm, 1)))) {
+                    if (!valuesIntegers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "only integer allowed when using %");
                         return EXEC_RUNTIME_ERROR;
                     }
@@ -183,7 +210,7 @@ static ExecutionResult vmRun(VM* vm) {
                 }
             case OP_POW:
                 {
-                    if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) {
+                    if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
                         return EXEC_RUNTIME_ERROR;
                     }
@@ -250,6 +277,17 @@ static ExecutionResult vmRun(VM* vm) {
             case OP_GREATER_EQUAL:
                 {
                     binary_op(>=, to_vbool);
+                    break;
+                }
+            case OP_CONCAT:
+                {
+                    if (!valuesConcatenable(peek(vm, 0), peek(vm, 1))) {
+                        runtimeError(vm, "values must be strings");
+                        return EXEC_RUNTIME_ERROR;
+                    }
+                    Value b = pop(vm);
+                    Value a = pop(vm);
+                    push(vm, concatenate(a, b));
                     break;
                 }
             default:

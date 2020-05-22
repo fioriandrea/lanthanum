@@ -4,6 +4,8 @@
 #include "compiler.h"
 #include "standardtypes.h"
 #include "./datastructs/chunk.h"
+#include "./datastructs/value.h"
+#include "./datastructs/object.h"
 
 #include "./services/token_printer.h"
 #define TRACE_TOKENS 
@@ -174,6 +176,7 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
         case TOK_LESS_EQUAL: emitByte(compiler, OP_LESS_EQUAL); break;
         case TOK_GREATER: emitByte(compiler, OP_GREATER); break;
         case TOK_GREATER_EQUAL: emitByte(compiler, OP_GREATER_EQUAL); break;
+        case TOK_PLUS_PLUS: emitByte(compiler, OP_CONCAT); break;
     }
 }
 
@@ -184,7 +187,9 @@ static void numberExpression(Compiler* compiler) {
 }
 
 static void stringExpression(Compiler* compiler) {
-
+    ObjString* string = copyString(compiler->current.start + 1, compiler->current.length - 2);
+    emitConstant(compiler, to_vobj(string));
+    advance(compiler);
 }
 
 static void basicExpression(Compiler* compiler) {
@@ -256,7 +261,7 @@ standard_binary_expression(multExpression, powExpression,
     check(compiler, TOK_STAR) || check(compiler, TOK_SLASH) || check(compiler, TOK_PERCENTAGE))
 
 standard_binary_expression(addExpression, multExpression,
-        check(compiler, TOK_PLUS) || check(compiler, TOK_MINUS))
+        check(compiler, TOK_PLUS) || check(compiler, TOK_MINUS) || check(compiler, TOK_PLUS_PLUS))
 
 standard_binary_expression(comparisonExpression, addExpression,
         check(compiler, TOK_LESS) || check(compiler, TOK_LESS_EQUAL)

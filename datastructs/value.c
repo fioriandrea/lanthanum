@@ -1,6 +1,10 @@
 #include "value.h"
 #include "../services/memory.h"
 
+int isObjType(Value value, ObjType type) {
+    return is_obj(value) && as_obj(value)->type == type;
+}
+
 void initValueArray(ValueArray* valarray) {
     valarray->count = 0;
     valarray->capacity = 0;
