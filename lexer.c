@@ -33,7 +33,7 @@ void initLexer(Lexer* lexer, char* src) {
     lexer->currentChar = src;
     lexer->beginningChar = src;
     lexer->source = src;
-    lexer->line = 0;
+    lexer->line = 1;
     lexer->indentStack[0] = 0;
     lexer->indentlen = 1;
     lexer->dedentCount = 0;
@@ -106,18 +106,17 @@ static int eat(Lexer* lexer, char c) {
 
 static void skipEmptyLines(Lexer* lexer) {
     char* oldCurrent = lexer->currentChar;
-    while (!atEnd(lexer)) {
-        while (*lexer->currentChar == ' ' || *lexer->currentChar == '\t')
-            lexer->currentChar++;
-        if (*lexer->currentChar == '\n')
+    while (*lexer->currentChar == ' ' || *lexer->currentChar == '\t' || *lexer->currentChar == '\n') {
+        lexer->currentChar++;
+        if (*lexer->currentChar == '\n') {
             lexer->line++;
-        if (*lexer->currentChar != '\n' && *lexer->currentChar != '\0') {
-            lexer->currentChar = oldCurrent;
-            return;
-        } else {
-            lexer->currentChar++;
-            oldCurrent = lexer->currentChar;
+            oldCurrent = lexer->currentChar + 1;
         }
+    }
+    if (*lexer->currentChar != '\0') {
+        lexer->currentChar = oldCurrent;
+    } else {
+        oldCurrent = lexer->currentChar;
     }
 }
 
