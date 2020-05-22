@@ -9,44 +9,56 @@
 #define TRACE_TOKENS 
 
 /*
-program -> statement* EOF
-statement -> print | let | if | while | func | ret | break | continue | expressionStat
-print -> 'print' expression NEW_LINE
-let -> 'let' IDENTIFIER '=' expression NEW_LINE
-if -> 'if' expression block ('elif' expression block)* ('else' block)?
-while -> 'while' expression block
-func -> 'func' IDENTIFIER '(' paramList ')' block
-ret -> 'ret' (expression)? NEW_LINE
-break -> 'break' NEW_LINE
-continue -> 'continue' NEW_LINE
-expressionStat -> expression NEW_LINE
-block -> INDENT statement* DEDENT
+   program -> statement* EOF
+   statement -> print | let | if | while | func | ret | break | continue | expressionStat
+   print -> 'print' expression NEW_LINE
+   let -> 'let' IDENTIFIER '=' expression NEW_LINE
+   if -> 'if' expression block ('elif' expression block)* ('else' block)?
+   while -> 'while' expression block
+   func -> 'func' IDENTIFIER '(' paramList ')' block
+   ret -> 'ret' (expression)? NEW_LINE
+   break -> 'break' NEW_LINE
+   continue -> 'continue' NEW_LINE
+   expressionStat -> expression NEW_LINE
+   block -> INDENT statement* DEDENT
 
-expression -> comma
-comma -> nonCommaExpr (',' nonCommaExpr)*
-nonCommaExpr -> assign
-assign -> ternary '=' expression
-ternary -> logicalSum ('?' ternary : ternary)?
-logicalSum -> and (('or' | 'xor') and)*
-and -> equal ('and' equal)*
-equal -> comparison (('==' | '!=') comparison)*
-comparison -> sum (('<' | '<=' | '>' | '>=') sum)*
-sum -> mult (('+' | '-' | '++') mult)*
-mult -> pow (('*' | '/' | '%') pow)*
-pow -> unary | unary '^' pow
-unary -> call | ('-' | '!') unary
-call -> functionCall | indexing
-functionCall -> primary '(' argList ')'
-argList -> nonCommaExpr (',' nonCommaExpr)* | ''
-indexing -> primary '[' expression ']'
-primary -> basic | '(' expression ')' | array | map
-basic -> STRING | NUMBER | TRUE | FALSE | NIHL | IDENTIFIER
-array -> '[' arrayList ']'
-arrayList -> nonCommaExpr (',' nonCommaExpr)* | ''
-map -> '{' mapList '}'
-mapList -> mapElement (',' mapElement) | ''
-mapElement -> nonCommaExpr '=>' nonCommaExpr
-*/
+   expression -> comma
+   comma -> nonCommaExpr (',' nonCommaExpr)*
+   nonCommaExpr -> assign
+   assign -> ternary '=' expression
+   ternary -> logicalSum ('?' ternary : ternary)?
+   logicalSum -> and (('or' | 'xor') and)*
+   and -> equal ('and' equal)*
+   equal -> comparison (('==' | '!=') comparison)*
+   comparison -> sum (('<' | '<=' | '>' | '>=') sum)*
+   sum -> mult (('+' | '-' | '++') mult)*
+   mult -> pow (('*' | '/' | '%') pow)*
+   pow -> unary | unary '^' pow
+   unary -> call | ('-' | '!') unary
+   call -> functionCall | indexing
+   functionCall -> primary '(' argList ')'
+   argList -> nonCommaExpr (',' nonCommaExpr)* | ''
+   indexing -> primary '[' expression ']'
+   primary -> basic | '(' expression ')' | array | map
+   basic -> STRING | NUMBER | TRUE | FALSE | NIHL | IDENTIFIER
+   array -> '[' arrayList ']'
+   arrayList -> nonCommaExpr (',' nonCommaExpr)* | ''
+   map -> '{' mapList '}'
+   mapList -> mapElement (',' mapElement) | ''
+   mapElement -> nonCommaExpr '=>' nonCommaExpr
+   */
+
+#define standard_binary_expression(name, next, condition) \
+    static void name(Compiler* compiler) { \
+        TokenType operator; \
+        next(compiler); \
+        while (condition) { \
+            operator = currentTokenType(compiler); \
+            advance(compiler); \
+            next(compiler); \
+            emitBinary(compiler, operator); \
+        } \
+    }       
 
 static void expression(Compiler* compiler);
 
@@ -88,8 +100,8 @@ static TokenType currentTokenType(Compiler* compiler) {
 }
 
 static void advance(Compiler* compiler) {
-   compiler->previous = compiler->current;
-   for (;;) {
+    compiler->previous = compiler->current;
+    for (;;) {
         compiler->current = nextToken(&compiler->lexer);
 #ifdef TRACE_TOKENS
         printf("\n...\n");
@@ -99,7 +111,7 @@ static void advance(Compiler* compiler) {
         if (compiler->current.type != TOK_ERROR)
             break;
         errorAtCurrent(compiler, "");
-   } 
+    } 
 }
 
 static int check(Compiler* compiler, TokenType type) {
@@ -156,6 +168,12 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
         case TOK_SLASH: emitByte(compiler, OP_DIV); break;
         case TOK_PERCENTAGE: emitByte(compiler, OP_MOD); break;
         case TOK_CIRCUMFLEX: emitByte(compiler, OP_POW); break;
+        case TOK_EQUAL_EQUAL: emitByte(compiler, OP_EQUAL); break;
+        case TOK_NOT_EQUAL: emitByte(compiler, OP_NOT_EQUAL); break;
+        case TOK_LESS: emitByte(compiler, OP_LESS); break;
+        case TOK_LESS_EQUAL: emitByte(compiler, OP_LESS_EQUAL); break;
+        case TOK_GREATER: emitByte(compiler, OP_GREATER); break;
+        case TOK_GREATER_EQUAL: emitByte(compiler, OP_GREATER_EQUAL); break;
     }
 }
 
@@ -234,30 +252,33 @@ static void powExpression(Compiler* compiler) {
     }
 }
 
-static void multExpression(Compiler* compiler) {
-    powExpression(compiler);
-    TokenType operator;
-    while (check(compiler, TOK_STAR) || check(compiler, TOK_SLASH) || check(compiler, TOK_PERCENTAGE)) {
-        operator = currentTokenType(compiler);
-        advance(compiler);
-        powExpression(compiler);
-        emitBinary(compiler, operator);
-    }
+standard_binary_expression(multExpression, powExpression,
+    check(compiler, TOK_STAR) || check(compiler, TOK_SLASH) || check(compiler, TOK_PERCENTAGE))
+
+standard_binary_expression(addExpression, multExpression,
+        check(compiler, TOK_PLUS) || check(compiler, TOK_MINUS))
+
+standard_binary_expression(comparisonExpression, addExpression,
+        check(compiler, TOK_LESS) || check(compiler, TOK_LESS_EQUAL)
+        || check (compiler, TOK_GREATER) || check(compiler, TOK_GREATER_EQUAL))
+
+standard_binary_expression(equalExpression, comparisonExpression, 
+        check(compiler, TOK_EQUAL_EQUAL) || check(compiler, TOK_NOT_EQUAL))
+
+static void nonCommaExpression(Compiler* compiler) {
+    equalExpression(compiler);
 }
 
-static void addExpression(Compiler* compiler) {
-    multExpression(compiler);
-    TokenType operator;
-    while (check(compiler, TOK_PLUS) || check(compiler, TOK_MINUS)) {
-        operator = currentTokenType(compiler);
-        advance(compiler);
-        multExpression(compiler);
-        emitBinary(compiler, operator);
+static void commaExpression(Compiler* compiler) {
+    nonCommaExpression(compiler);
+    while (eat(compiler, TOK_COMMA)) {
+        emitByte(compiler, OP_POP);
+        nonCommaExpression(compiler);
     }
 }
 
 static void expression(Compiler* compiler) {
-    return addExpression(compiler); 
+    return commaExpression(compiler); 
 }
 
 int compile(Compiler* compiler, Chunk* chunk) {

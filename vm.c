@@ -18,6 +18,16 @@ static int isTruthy(Value val) {
             (is_number(val) && as_cnumber(val) == 0));
 }
 
+static int valuesEqual(Value a, Value b) {
+    if (a.type != b.type)
+        return 0;
+    switch (a.type) {
+        case VALUE_NIHL: return 1;
+        case VALUE_NUMBER: return as_cnumber(a) == as_cnumber(b);
+        case VALUE_BOOL: return as_cbool(a) == as_cbool(b);
+    }
+}
+
 static void resetStack(VM* vm) {
     vm->sp = vm->stack;
 }
@@ -58,7 +68,7 @@ static void runtimeError(VM* vm, char* format, ...) {
 static ExecutionResult vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
 #define read_constant() (vm->chunk->constants.values[read_byte()])
-#define binary_op(operator) \
+#define binary_op(operator, destination) \
     do { \
         if (!is_number(peek(vm, 0)) || !is_number(peek(vm, 1))) { \
             runtimeError(vm, "operand must be numbers"); \
@@ -66,7 +76,7 @@ static ExecutionResult vmRun(VM* vm) {
         } \
         double b = as_cnumber(pop(vm)); \
         double a = as_cnumber(pop(vm)); \
-        push(vm, to_vnumber(a operator b)); \
+        push(vm, destination(a operator b)); \
     } while (0)
 
 
@@ -123,17 +133,17 @@ static ExecutionResult vmRun(VM* vm) {
                 }
             case OP_ADD:
                 {
-                    binary_op(+);
+                    binary_op(+, to_vnumber);
                     break;      
                 }
             case OP_SUB: 
                 {
-                    binary_op(-);
+                    binary_op(-, to_vnumber);
                     break;      
                 }
             case OP_MUL:
                 {
-                    binary_op(*);
+                    binary_op(*, to_vnumber);
                     break;      
                 }
             case OP_DIV:
@@ -201,6 +211,45 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     Value val = pop(vm);
                     push(vm, to_vbool(!isTruthy(val)));
+                    break;
+                }
+            case OP_POP:
+                {
+                    pop(vm);
+                    break;
+                }
+            case OP_EQUAL:
+                {
+                    Value b = pop(vm);
+                    Value a = pop(vm);
+                    push(vm, to_vbool(valuesEqual(a, b)));
+                    break;
+                }
+            case OP_NOT_EQUAL:
+                {
+                    Value b = pop(vm);
+                    Value a = pop(vm);
+                    push(vm, to_vbool(!valuesEqual(a, b)));
+                    break;
+                }
+            case OP_LESS:
+                {
+                    binary_op(<, to_vbool);
+                    break;
+                }
+            case OP_LESS_EQUAL:
+                {
+                    binary_op(<=, to_vbool);
+                    break;
+                }
+            case OP_GREATER:
+                {
+                    binary_op(>, to_vbool);
+                    break;
+                }
+            case OP_GREATER_EQUAL:
+                {
+                    binary_op(>=, to_vbool);
                     break;
                 }
             default:

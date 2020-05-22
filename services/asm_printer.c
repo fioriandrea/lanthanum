@@ -67,6 +67,18 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             return printSimpleInstruction("OP_CONST_NIHL", offset);
         case OP_NOT:
             return printSimpleInstruction("OP_NOT", offset);
+        case OP_POP:
+            return printSimpleInstruction("OP_POP", offset);
+        case OP_LESS:
+            return printSimpleInstruction("OP_LESS", offset);
+        case OP_LESS_EQUAL:
+            return printSimpleInstruction("OP_LESS_EQUAL", offset);
+        case OP_GREATER:
+            return printSimpleInstruction("OP_GREATER", offset);
+        case OP_GREATER_EQUAL:
+            return printSimpleInstruction("OP_GREATER_EQUAL", offset);
+        case OP_EQUAL:
+            return printSimpleInstruction("OP_EQUAL", offset);
         default:
             printf("Undefined instruction: [opcode = %d]\n", code);
             return offset + 1;

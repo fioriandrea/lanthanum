@@ -19,6 +19,13 @@ typedef enum {
     OP_CONST_NIHL,
     OP_CONST_TRUE,
     OP_CONST_FALSE,
+    OP_POP,
+    OP_LESS,
+    OP_LESS_EQUAL,
+    OP_GREATER,
+    OP_GREATER_EQUAL,
+    OP_EQUAL,
+    OP_NOT_EQUAL,
 } OpCode;
 
 typedef struct {
