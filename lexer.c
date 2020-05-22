@@ -252,11 +252,11 @@ static int processBoundaries(Lexer* lexer, Token* tok) {
 }
 
 Token nextToken(Lexer* lexer) {
+    sync(lexer);
     Token tok;
     if (processBoundaries(lexer, &tok)) {
         return tok;
     }
-    sync(lexer);
     lexer->atFirstIteration = 0;
     tok = makeError(lexer, "unexpected character");
 
