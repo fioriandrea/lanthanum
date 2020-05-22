@@ -108,14 +108,15 @@ static void skipEmptyLines(Lexer* lexer) {
     char* oldCurrent = lexer->currentChar;
     while (!atEnd(lexer)) {
         while (*lexer->currentChar == ' ' || *lexer->currentChar == '\t')
-        lexer->currentChar++;
+            lexer->currentChar++;
         if (*lexer->currentChar == '\n')
             lexer->line++;
         if (*lexer->currentChar != '\n' && *lexer->currentChar != '\0') {
             lexer->currentChar = oldCurrent;
             return;
         } else {
-            oldCurrent = ++(lexer->currentChar);
+            lexer->currentChar++;
+            oldCurrent = lexer->currentChar;
         }
     }
 }
@@ -176,8 +177,9 @@ static Token identifier(Lexer* lexer) {
 static int processNewLines(Lexer* lexer, Token* tok)  {
     // !lexer->atFirstIteration to not emit a \n if there's one (or more) \n at the beginning of the file
     if (*lexer->currentChar == '\n' && !lexer->atFirstIteration) {
-        skipEmptyLines(lexer);
         *tok = makeSpecial(lexer, TOK_NEW_LINE, "NEW_LINE");
+        skipEmptyLines(lexer);
+        sync(lexer);
         return 1;
     }
     return 0;
