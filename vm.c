@@ -141,12 +141,18 @@ ExecutionResult vmExecute(VM* vm, char* source) {
     initChunk(&chunk);
     Compiler compiler;
     initCompiler(&compiler, source);
-    compile(&compiler, &chunk);
-    vm->chunk = &chunk;
-    vm->pc = chunk.code;
-    // ExecutionResult result = vmRun(vm);
+    int compileResult = compile(&compiler, &chunk);
+    ExecutionResult result;
+    if (compileResult) {
+        vm->chunk = &chunk;
+        vm->pc = chunk.code;
+        result = vmRun(vm);
+    } else {
+        result = EXEC_COMPILE_ERROR;
+    }
     freeCompiler(&compiler);
-    return EXEC_OK;
+    freeChunk(&chunk);
+    return result;
 }
 
 void freeVM(VM* vm) {

@@ -6,10 +6,14 @@
 
 typedef struct {
     Lexer lexer;
+    Token current;
+    Token previous;
+    Chunk* compilingChunk;
+    int hadError;
 } Compiler;
 
 void initCompiler(Compiler* compiler, char* source);
-void compile(Compiler* compiler, Chunk* chunk);
+int compile(Compiler* compiler, Chunk* chunk);
 void freeCompiler(Compiler* compiler);
 
 #endif
