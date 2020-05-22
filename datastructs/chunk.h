@@ -8,6 +8,7 @@
 typedef enum {
     OP_RET,
     OP_CONST,
+    OP_NEGATE,
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -15,7 +16,6 @@ typedef enum {
     OP_MOD,
     OP_POW,
 
-    OP_NEGATE,
     OP_NOT,
     OP_CONST_NIHL,
     OP_CONST_TRUE,

@@ -10,6 +10,7 @@ typedef struct {
     Token previous;
     Chunk* compilingChunk;
     int hadError;
+    int panic;
 } Compiler;
 
 void initCompiler(Compiler* compiler, char* source);

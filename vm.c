@@ -6,6 +6,7 @@
 #include "compiler.h"
 
 #define TRACE_EXEC
+#define PRINT_CODE
 
 static int isInteger(double n) {
     return (int) n == n;
@@ -46,6 +47,16 @@ static ExecutionResult vmRun(VM* vm) {
     } while (0)
 
 
+#ifdef PRINT_CODE
+    printf("VM CODE:\n");
+    printChunk(vm->chunk, "code");
+    printf("\n");
+    for (int i = 0; i < vm->chunk->lines.count; i++) {
+        printf("{l: %d, c: %d}\n", vm->chunk->lines.lines[i].line, vm->chunk->lines.lines[i].count);
+    }
+    printf("\n");
+#endif
+
 #ifdef TRACE_EXEC
     printf("VM EXECUTION TRACE:\n");
 #endif
@@ -75,6 +86,12 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     Value constant = read_constant();
                     push(vm, constant);
+                    break;
+                }
+            case OP_NEGATE:
+                {
+                    Value a = pop(vm);
+                    push(vm, -a);
                     break;
                 }
             case OP_ADD:

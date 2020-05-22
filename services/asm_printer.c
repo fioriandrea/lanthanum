@@ -35,6 +35,8 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             return printSimpleInstruction("OP_RET", offset);
         case OP_CONST:
             return printConstantInstruction("OP_CONST", chunk, offset);
+        case OP_NEGATE:
+            return printSimpleInstruction("OP_NEGATE", offset);
         case OP_ADD:
             return printSimpleInstruction("OP_ADD", offset);
         case OP_SUB:
@@ -47,6 +49,12 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             return printSimpleInstruction("OP_MOD", offset);
         case OP_POW:
             return printSimpleInstruction("OP_POW", offset);
+        case OP_CONST_TRUE:
+            return printSimpleInstruction("OP_CONST_TRUE", offset);
+        case OP_CONST_FALSE:
+            return printSimpleInstruction("OP_CONST_FALSE", offset);
+        case OP_CONST_NIHL:
+            return printSimpleInstruction("OP_CONST_NIHL", offset);
         default:
             printf("Undefined instruction: [opcode = %d]\n", code);
             return offset + 1;

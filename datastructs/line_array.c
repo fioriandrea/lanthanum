@@ -14,7 +14,7 @@ int writeLineArray(LineArray* linearr, int line) {
         linearr->lines = grow_array(LineData, linearr->lines, linearr->capacity, newcap);
         linearr->capacity = newcap; 
     }
-    if (linearr->count == 0 || linearr->count > 0 && linearr->lines[linearr->count - 1].line != line) {
+    if (linearr->count == 0 || linearr->lines[linearr->count - 1].line != line) {
         linearr->lines[linearr->count].line = line;
         linearr->lines[linearr->count].count = 1;
         linearr->count++;
@@ -31,11 +31,10 @@ void freeLineArray(LineArray* linearr) {
 
 int lineArrayGet(LineArray* linearr, int index) {
     int accumulator = 0;
-    int i = 0;
-    for (; i < linearr->count; i++) {
-        if (accumulator >= index) 
-            break;
-        accumulator += linearr->lines[i].count;
+    for (int i = 0; i < linearr->count; i++) {
+        LineData datum = linearr->lines[i];
+        accumulator += datum.count;
+        if (accumulator > index)
+            return datum.line;
     }
-    return linearr->lines[i].line;
 }

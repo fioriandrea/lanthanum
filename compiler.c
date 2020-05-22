@@ -54,22 +54,29 @@ static Chunk* compilingChunk(Compiler* compiler) {
     return compiler->compilingChunk;
 }
 
-static void lexerError(Compiler* compiler, Token tok) {
-    fprintf(stderr, "error [line %d]: %.*s", tok.line, tok.length, tok.start);
+static void error(Compiler* compiler, Token tok, char* message) {
+    if (compiler->panic)
+        return;
+    fprintf(stderr, "error ");
+    if (tok.type == TOK_EOF) {
+        fprintf(stderr, "[at end]: ");
+    } else {
+        fprintf(stderr, "[at %d]: ", tok.line);
+    }
+    if (tok.type != TOK_ERROR) {
+        fprintf(stderr, "at '%.*s', ", tok.length, tok.start);
+    }
+    fprintf(stderr, "%s\n", message);
     compiler->hadError = 1;
-}
-
-static void compilerError(Compiler* compiler, Token tok, char* message) {
-    fprintf(stderr, "error [line %d]: at '%.*s', %s\n", tok.line, tok.length, tok.start, message);
-    compiler->hadError = 1;
+    compiler->panic = 1;
 }
 
 static void errorAtCurrent(Compiler* compiler, char* message) {
-    compilerError(compiler, compiler->current, message);
+    error(compiler, compiler->current, message);
 }
 
 static void errorAtPrevious(Compiler* compiler, char* message) {
-    compilerError(compiler, compiler->previous, message);
+    error(compiler, compiler->previous, message);
 }
 
 static TokenType previousTokenType(Compiler* compiler) {
@@ -91,7 +98,7 @@ static void advance(Compiler* compiler) {
 #endif
         if (compiler->current.type != TOK_ERROR)
             break;
-        lexerError(compiler, compiler->current);
+        errorAtCurrent(compiler, "");
    } 
 }
 
@@ -116,9 +123,11 @@ static void eatError(Compiler* compiler, TokenType type, char* msg) {
 void initCompiler(Compiler* compiler, char* source) {
     initLexer(&compiler->lexer, source);
     compiler->hadError = 0;
+    compiler->panic = 0;
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
+    printToken(compiler->current);
     writeChunk(compilingChunk(compiler), byte, compiler->current.line);
 }
 
@@ -259,7 +268,6 @@ int compile(Compiler* compiler, Chunk* chunk) {
     eatError(compiler, TOK_NEW_LINE, "expected new line");
     eatError(compiler, TOK_EOF, "expected EOF");
     emitRet(compiler);
-    printf("error %d\n", compiler->hadError);
     return !compiler->hadError;
 }
 
