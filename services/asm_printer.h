@@ -5,6 +5,5 @@
 
 void printChunk(Chunk* chunk, char* name);
 int printInstruction(Chunk* chunk, OpCode code, int offset);
-void printValue(Value val);
 
 #endif

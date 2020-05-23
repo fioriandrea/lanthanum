@@ -8,7 +8,7 @@
 #include "./datastructs/object.h"
 
 #include "./services/token_printer.h"
-//#define TRACE_TOKENS 
+#define TRACE_TOKENS 
 
 /*
    program -> statement* EOF

@@ -1,6 +1,8 @@
 #include <string.h>
+#include <stdio.h>
 
 #include "object.h"
+#include "../util.h"
 #include "../services/memory.h"
 
 Obj* objList = NULL;
@@ -12,6 +14,7 @@ Obj* allocateObj(ObjType type, size_t size) {
     Obj* obj = allocate_pointer(Obj, size);
     obj->type = type;
     obj->next = objList;
+    obj->hash = hash_pointer(obj);
     objList = obj;
     return obj;
 }
@@ -48,4 +51,12 @@ void freeObjList() {
         freeObject(objList);
         objList = next;
     }    
+}
+
+void printObj(Obj* obj) {
+    switch (obj->type) {
+        case OBJ_STRING:
+            printf("%s", ((ObjString*) obj)->chars);
+            break;
+    }
 }

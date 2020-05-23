@@ -8,8 +8,6 @@
 #include "./services/memory.h"
 #include "./datastructs/value.h"
 #include "compiler.h"
-#include "./value_operations.h"
-#include "./value_operations.h"
 
 #define TRACE_EXEC
 #define PRINT_CODE

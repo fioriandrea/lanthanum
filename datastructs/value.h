@@ -46,8 +46,25 @@ typedef struct {
     Value* values;
 } ValueArray;
 
+#define hash_bool(b) (as_cbool(b) + 1)
+#define hash_nihl 0
+#define hash_number(n) hash_double(as_cnumber(n))
+
+uint32_t hashValue(Value val);
+
+static inline uint32_t get_value_hash(Value val) {
+    return is_obj(val) ? as_obj(val)->hash : hashValue(val);
+}
+
 void initValueArray(ValueArray* valarray);
 int writeValueArray(ValueArray* valarray, Value value);
 void freeValueArray(ValueArray* valarray);
+int isTruthy(Value val); 
+int valuesIntegers(Value a, Value b); 
+int valuesEqual(Value a, Value b); 
+int valuesConcatenable(Value a, Value b); 
+int valuesNumbers(Value a, Value b); 
+Value concatenate(Value a, Value b); 
+void printValue(Value val);
 
 #endif

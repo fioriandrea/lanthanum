@@ -10,31 +10,6 @@ static int printSimpleInstruction(char* instname, int offset) {
     return offset + 1;
 }
 
-void printObj(Value val) {
-    Obj* obj = as_obj(val);
-    switch (obj->type) {
-        case OBJ_STRING:
-            printf("%s", as_cstring(val));
-            break;
-    }
-}
-
-void printValue(Value val) {
-    switch (val.type) {
-        case VALUE_BOOL:
-            printf("%s", as_cbool(val) ? "true" : "false");
-            break;
-        case VALUE_NUMBER:
-            printf("%g", as_cnumber(val));
-            break;
-        case VALUE_NIHL:
-            printf("nihl");
-            break;
-        case VALUE_OBJ:
-            printObj(val);
-    }
-}
-
 static int printConstantInstruction(char* instname, Chunk* chunk, int offset) {
     uint8_t address = chunk->code[offset + 1];
     Value* val = &chunk->constants.values[address];
