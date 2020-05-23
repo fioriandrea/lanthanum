@@ -8,7 +8,7 @@
 #include "./datastructs/object.h"
 
 #include "./services/token_printer.h"
-#define TRACE_TOKENS 
+//#define TRACE_TOKENS 
 
 /*
    program -> statement* EOF
@@ -145,9 +145,7 @@ static void emitByte(Compiler* compiler, uint8_t byte) {
 }
 
 static void emitConstant(Compiler* compiler, Value val) {
-    int index = writeConstant(compilingChunk(compiler), val);
-    emitByte(compiler, OP_CONST);
-    emitByte(compiler, index);
+    writeConstant(compilingChunk(compiler), val, compiler->current.line);
 }
 
 static void emitRet(Compiler* compiler) {

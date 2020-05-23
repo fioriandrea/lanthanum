@@ -43,6 +43,14 @@ static int printConstantInstruction(char* instname, Chunk* chunk, int offset) {
     printf("'\n");
     return offset + 2;
 }
+static int printLongConstantInstruction(char* instname, Chunk* chunk, int offset) {
+    uint16_t address = join_bytes(chunk->code[offset + 1], chunk->code[offset + 2]);
+    Value* val = &chunk->constants.values[address];
+    printf("%s [%d] '", instname, address);
+    printValue(*val);
+    printf("'\n");
+    return offset + 3;
+}
 
 void printChunk(Chunk* chunk, char* name) {
     printf("chunk => %s\n", name);
@@ -52,50 +60,35 @@ void printChunk(Chunk* chunk, char* name) {
 }
 
 int printInstruction(Chunk* chunk, OpCode code, int offset) {
+#define print_simple_instruction(op) case op: return printSimpleInstruction(#op, offset);
     printf("line = %d: ", lineArrayGet(&chunk->lines, offset));
     switch (code) {
-        case OP_RET:
-            return printSimpleInstruction("OP_RET", offset);
         case OP_CONST:
             return printConstantInstruction("OP_CONST", chunk, offset);
-        case OP_NEGATE:
-            return printSimpleInstruction("OP_NEGATE", offset);
-        case OP_ADD:
-            return printSimpleInstruction("OP_ADD", offset);
-        case OP_SUB:
-            return printSimpleInstruction("OP_SUB", offset);
-        case OP_MUL:
-            return printSimpleInstruction("OP_MUL", offset);
-        case OP_DIV:
-            return printSimpleInstruction("OP_DIV", offset);
-        case OP_MOD:
-            return printSimpleInstruction("OP_MOD", offset);
-        case OP_POW:
-            return printSimpleInstruction("OP_POW", offset);
-        case OP_CONST_TRUE:
-            return printSimpleInstruction("OP_CONST_TRUE", offset);
-        case OP_CONST_FALSE:
-            return printSimpleInstruction("OP_CONST_FALSE", offset);
-        case OP_CONST_NIHL:
-            return printSimpleInstruction("OP_CONST_NIHL", offset);
-        case OP_NOT:
-            return printSimpleInstruction("OP_NOT", offset);
-        case OP_POP:
-            return printSimpleInstruction("OP_POP", offset);
-        case OP_LESS:
-            return printSimpleInstruction("OP_LESS", offset);
-        case OP_LESS_EQUAL:
-            return printSimpleInstruction("OP_LESS_EQUAL", offset);
-        case OP_GREATER:
-            return printSimpleInstruction("OP_GREATER", offset);
-        case OP_GREATER_EQUAL:
-            return printSimpleInstruction("OP_GREATER_EQUAL", offset);
-        case OP_EQUAL:
-            return printSimpleInstruction("OP_EQUAL", offset);
-        case OP_CONCAT:
-            return printSimpleInstruction("OP_CONCAT", offset);
+        case OP_CONST_LONG:
+            return printLongConstantInstruction("OP_CONST_LONG", chunk, offset);
+            print_simple_instruction(OP_RET)
+                print_simple_instruction(OP_NEGATE)
+                print_simple_instruction(OP_ADD)
+                print_simple_instruction(OP_SUB)
+                print_simple_instruction(OP_MUL)
+                print_simple_instruction(OP_DIV)
+                print_simple_instruction(OP_MOD)
+                print_simple_instruction(OP_POW)
+                print_simple_instruction(OP_CONST_TRUE)
+                print_simple_instruction(OP_CONST_FALSE)
+                print_simple_instruction(OP_CONST_NIHL)
+                print_simple_instruction(OP_NOT)
+                print_simple_instruction(OP_POP)
+                print_simple_instruction(OP_LESS)
+                print_simple_instruction(OP_LESS_EQUAL)
+                print_simple_instruction(OP_GREATER)
+                print_simple_instruction(OP_GREATER_EQUAL)
+                print_simple_instruction(OP_EQUAL)
+                print_simple_instruction(OP_CONCAT)
         default:
-            printf("Undefined instruction: [opcode = %d]\n", code);
-            return offset + 1;
+                printf("Undefined instruction: [opcode = %d]\n", code);
+                return offset + 1;
     }
+#undef print_simple_instruction
 }

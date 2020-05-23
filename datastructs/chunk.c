@@ -27,6 +27,17 @@ void freeChunk(Chunk* chunk) {
     initChunk(chunk);
 }
 
-int writeConstant(Chunk* chunk, Value value) {
-    return writeValueArray(&chunk->constants, value);
+int writeConstant(Chunk* chunk, Value value, int line) {
+    uint16_t address = (uint16_t) writeValueArray(&chunk->constants, value);
+    if (address > UINT8_MAX) {
+        SplittedLong lng = split_long(address);
+        printf("addtr %d %d ,\n", lng.b0, lng.b1);
+        writeChunk(chunk, OP_CONST_LONG, line);
+        writeChunk(chunk, (uint8_t) lng.b0, line);
+        writeChunk(chunk, (uint8_t) lng.b1, line);
+    } else {
+        writeChunk(chunk, OP_CONST, line);
+        writeChunk(chunk, (uint8_t) address, line);
+    }
+    return chunk->count - 1;
 }

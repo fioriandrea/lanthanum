@@ -53,7 +53,9 @@ static void runtimeError(VM* vm, char* format, ...) {
 
 static ExecutionResult vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
+#define read_long() join_bytes(read_byte(), read_byte())
 #define read_constant() (vm->chunk->constants.values[read_byte()])
+#define read_constant_long() (vm->chunk->constants.values[read_long()])
 #define binary_op(operator, destination) \
     do { \
         if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
@@ -104,6 +106,12 @@ static ExecutionResult vmRun(VM* vm) {
             case OP_CONST: 
                 {
                     Value constant = read_constant();
+                    push(vm, constant);
+                    break;
+                }
+            case OP_CONST_LONG:
+                {
+                    Value constant = read_constant_long();
                     push(vm, constant);
                     break;
                 }
