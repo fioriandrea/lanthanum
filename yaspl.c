@@ -54,5 +54,6 @@ int main(int argc, char **argv) {
         runFile(argv[i], &vm);
     }
     freeVM(&vm);
+    freeObjList();
     return 0;
 }

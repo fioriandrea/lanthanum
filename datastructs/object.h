@@ -12,6 +12,8 @@ struct sObj {
 
 typedef struct sObj Obj;
 
+extern Obj* objList;
+
 typedef struct {
     Obj obj;
     int length;
@@ -21,5 +23,6 @@ typedef struct {
 ObjString* copyString(char* chars, int length);
 ObjString* takeString(char* chars, int length);
 void freeObject(Obj* object);
+void freeObjList();
 
 #endif

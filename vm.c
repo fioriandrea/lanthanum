@@ -281,9 +281,4 @@ ExecutionResult vmExecute(VM* vm, char* source) {
 }
 
 void freeVM(VM* vm) {
-    while (objList != NULL) {
-        Obj* next = objList->next;
-        freeObject(objList);
-        objList = next;
-    }    
 }

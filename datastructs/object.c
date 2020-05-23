@@ -3,6 +3,8 @@
 #include "object.h"
 #include "../services/memory.h"
 
+Obj* objList = NULL;
+
 #define allocate_obj(type, typeenum) \
     ((type*) allocateObj(typeenum, sizeof(type)))
 
@@ -38,4 +40,12 @@ void freeObject(Obj* object) {
                 break;                                              
             }                                                     
     }
+}
+
+void freeObjList() {
+    while (objList != NULL) {
+        Obj* next = objList->next;
+        freeObject(objList);
+        objList = next;
+    }    
 }
