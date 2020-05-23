@@ -46,8 +46,8 @@ typedef struct {
     Value* values;
 } ValueArray;
 
-#define hash_bool(b) (as_cbool(b) + 1)
-#define hash_nihl 0
+#define hash_bool(b) hash_int(as_cbool(b) + 31)
+#define hash_nihl hash_int(42)
 #define hash_number(n) hash_double(as_cnumber(n))
 
 uint32_t hashValue(Value val);
