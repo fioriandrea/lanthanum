@@ -10,6 +10,7 @@ void printEntry(Entry* entry) {
 }
 
 static void printBucket(Entry* head) {
+    printf("    bucket:\n");
     while (head != NULL) {
         printf("    ");
         printEntry(head);
@@ -25,5 +26,5 @@ void printMap(HashMap* map) {
             printBucket(map->entries[i]);
         }
     }
-    printf("}");
+    printf("}\n");
 }

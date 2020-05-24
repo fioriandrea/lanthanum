@@ -3,24 +3,26 @@
 #include "hash_map.h"
 #include "../memory.h"
 
-#define LOAD_FACTOR 0.65
+#define LOAD_FACTOR 0.65 
+#define get_index(hash, capacity) ((hash) & ((capacity) - 1))
 
 static Entry* findEntry(Entry** entries, int capacity, Value key) {
     uint32_t hash = get_value_hash(key);
-    Entry* head = entries[hash % capacity];
+    Entry* head = entries[get_index(hash, capacity)];
     while (head != NULL) {
         if (valuesEqual(key, head->key)) {
             return head;
         }
+        head = head->next;
     }
-    return head;
+    return NULL;
 }
 
 static int entriesPut(Entry** entries, int capacity, Value key, Value value) {
-    uint32_t hash = get_value_hash(key);
-    int index = hash % capacity;
     Entry* head = findEntry(entries, capacity, key);
     if (head == NULL) {
+        uint32_t hash = get_value_hash(key);
+        int index = get_index(hash, capacity);
         Entry* newhead = allocate_pointer(Entry, sizeof(Entry));
         newhead->key = key;
         newhead->value = value;
@@ -40,7 +42,11 @@ static void growMap(HashMap* map) {
         newentries[i] = NULL;
     }
     for (int i = 0; i < map->capacity; i++) {
-        entriesPut(newentries, newcap, map->entries[i]->key, map->entries[i]->value);
+        Entry* head = map->entries[i];
+        while (head != NULL) {
+            entriesPut(newentries, newcap, head->key, head->value);
+            head = head->next;
+        }
     }
     free_array(Entry*, map->entries, map->capacity);
     map->entries = newentries;
@@ -57,7 +63,10 @@ int mapPut(HashMap* map, Value key, Value value) {
     if (map->count + 1 > map->capacity * LOAD_FACTOR) {
         growMap(map);
     }
-    return entriesPut(map->entries, map->capacity, key, value);
+    int result = entriesPut(map->entries, map->capacity, key, value);
+    if (!result)
+        map->count++;
+    return result;
 }
 
 int mapGet(HashMap* map, Value key, Value* result) {
@@ -71,7 +80,7 @@ int mapGet(HashMap* map, Value key, Value* result) {
 
 int mapRemove(HashMap* map, Value key) {
     uint32_t hash = get_value_hash(key);
-    int index = hash % map->capacity;
+    int index = get_index(hash, map->capacity);
     Entry* dummy = (Entry*) malloc(sizeof(Entry));
     Entry* previous = dummy;
     Entry* current = map->entries[index];
