@@ -5,52 +5,42 @@
 #include "../util.h"
 #include "../memory.h"
 
-Obj* objList = NULL;
+#define allocate_obj(collector, type, typeenum) \
+    ((type*) allocateObj(collector, typeenum, sizeof(type)))
 
-#define allocate_obj(type, typeenum) \
-    ((type*) allocateObj(typeenum, sizeof(type)))
-
-Obj* allocateObj(ObjType type, size_t size) {
-    Obj* obj = allocate_pointer(Obj, size);
+Obj* allocateObj(Collector* collector, ObjType type, size_t size) {
+    Obj* obj = allocate_pointer(collector, Obj, size);
     obj->type = type;
-    obj->next = objList;
+    obj->next = collector->objects;
     obj->hash = hash_pointer(obj);
-    objList = obj;
+    collector->objects = obj;
     return obj;
 }
 
-ObjString* copyString(char* chars, int length) {
-    char* copied = allocate_block(char, length + 1);
+ObjString* copyString(Collector* collector, char* chars, int length) {
+    char* copied = allocate_block(collector, char, length + 1);
     memcpy(copied, chars, length);
     copied[length] = '\0';
-    return takeString(copied, length);
+    return takeString(collector, copied, length);
 }
 
-ObjString* takeString(char* chars, int length) {
-    ObjString* string = allocate_obj(ObjString, OBJ_STRING);
+ObjString* takeString(Collector* collector, char* chars, int length) {
+    ObjString* string = allocate_obj(collector, ObjString, OBJ_STRING);
     string->chars = chars;
     string->length = length;
     return string;
 }
 
-void freeObject(Obj* object) {
+void freeObject(Collector* collector, Obj* object) {
     switch (object->type) {                                 
         case OBJ_STRING: 
             {                                    
                 ObjString* string = (ObjString*) object;             
-                free_array(char, string->chars, string->length + 1);
-                free_pointer(object, sizeof(ObjString));                            
+                free_array(collector, char, string->chars, string->length + 1);
+                free_pointer(collector, object, sizeof(ObjString));                            
                 break;                                              
             }                                                     
     }
-}
-
-void freeObjList() {
-    while (objList != NULL) {
-        Obj* next = objList->next;
-        freeObject(objList);
-        objList = next;
-    }    
 }
 
 void printObj(Obj* obj) {

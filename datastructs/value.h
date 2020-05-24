@@ -2,6 +2,7 @@
 #define value_h
 
 #include "object.h"
+#include "../commontypes.h"
 
 typedef enum {
     VALUE_NIHL,
@@ -57,14 +58,14 @@ static inline uint32_t get_value_hash(Value val) {
 }
 
 void initValueArray(ValueArray* valarray);
-int writeValueArray(ValueArray* valarray, Value value);
-void freeValueArray(ValueArray* valarray);
+int writeValueArray(Collector* collector, ValueArray* valarray, Value value);
+void freeValueArray(Collector* collector, ValueArray* valarray);
 int isTruthy(Value val); 
 int valuesIntegers(Value a, Value b); 
 int valuesEqual(Value a, Value b); 
 int valuesConcatenable(Value a, Value b); 
 int valuesNumbers(Value a, Value b); 
-Value concatenate(Value a, Value b); 
+Value concatenate(Collector* collector, Value a, Value b); 
 void printValue(Value val);
 
 #endif

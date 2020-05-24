@@ -2,7 +2,8 @@
 #define vm_h
 
 #include "./datastructs/chunk.h"
-#include "./standardtypes.h"
+#include "./commontypes.h"
+#include "./datastructs/value.h"
 
 #define MAX_STACK 256
 
@@ -11,6 +12,7 @@ typedef struct {
     uint8_t* pc;
     Value stack[MAX_STACK];
     Value* sp;
+    Collector* collector;
 } VM;
 
 typedef enum {
@@ -19,7 +21,7 @@ typedef enum {
     EXEC_COMPILE_ERROR,
 } ExecutionResult;
 
-void initVM(VM* vm);
+void initVM(VM* vm, Collector* collector);
 ExecutionResult vmExecute(VM* vm, char* source);  
 void freeVM(VM* vm);
 

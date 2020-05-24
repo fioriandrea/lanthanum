@@ -1,29 +1,44 @@
 #ifndef memory_h
 #define memory_h
 
-#include "standardtypes.h"
+#include <stdlib.h>
+
+#include "./commontypes.h"
+
+#include "./datastructs/value.h"
+#include "./datastructs/hash_map.h"
+
+struct sCollector {
+    Obj* objects;
+    HashMap* interned;
+    size_t allocated;
+};
 
 #define compute_capacity(oldcap) \
     ((oldcap) < 8 ? 8 : (oldcap) * 2)
 
-#define grow_array(type, array, oldcap, newcap) \
-    ((type*) reallocate(array, (oldcap) * sizeof(type), (newcap) * sizeof(type)))
+#define grow_array(collector, type, array, oldcap, newcap) \
+    ((type*) reallocate(collector, array, (oldcap) * sizeof(type), (newcap) * sizeof(type)))
 
-#define free_array(type, array, oldcap) \
-    reallocate(array, (oldcap) * sizeof(type), 0)
+#define free_array(collector, type, array, oldcap) \
+    reallocate(collector, array, (oldcap) * sizeof(type), 0)
 
-#define allocate_block(type, ncells) \
-    ((type*) reallocate(NULL, 0, sizeof(type) * (ncells)))
+#define allocate_block(collector, type, ncells) \
+    ((type*) reallocate(collector, NULL, 0, sizeof(type) * (ncells)))
 
-#define free_block(type, block, ncells) \
-    reallocate(block, sizeof(type) * ncells, 0)
+#define free_block(collector, type, block, ncells) \
+    reallocate(collector, block, sizeof(type) * ncells, 0)
 
-#define allocate_pointer(type, size) \
-    ((type*) reallocate(NULL, 0, size))
+#define allocate_pointer(collector, type, size) \
+    ((type*) reallocate(collector, NULL, 0, size))
 
-#define free_pointer(pointer, size) \
-    reallocate(pointer, size, 0) 
+#define free_pointer(collector, pointer, size) \
+    reallocate(collector, pointer, size, 0) 
 
-void* reallocate(void* pointer, size_t oldsize, size_t newsize);
+typedef struct sCollector Collector;
+
+void* reallocate(Collector* collector, void* pointer, size_t oldsize, size_t newsize); 
+void initCollector(Collector* collector, HashMap* map); 
+void freeCollector(Collector* collector); 
 
 #endif

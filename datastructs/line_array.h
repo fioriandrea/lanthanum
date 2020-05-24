@@ -1,6 +1,8 @@
 #ifndef line_array_h
 #define line_array_h
 
+#include "../commontypes.h"
+
 typedef struct {
     int count;
     int line;
@@ -13,8 +15,8 @@ typedef struct {
 } LineArray;
 
 void initLineArray(LineArray* linearr);
-int writeLineArray(LineArray* linearr, int line);
-void freeLineArray(LineArray* linearr);
+int writeLineArray(Collector* collector, LineArray* linearr, int line);
+void freeLineArray(Collector* collector, LineArray* linearr);
 int lineArrayGet(LineArray* linearr, int index);
 
 #endif

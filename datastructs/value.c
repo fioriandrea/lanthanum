@@ -16,18 +16,18 @@ void initValueArray(ValueArray* valarray) {
     valarray->values = NULL;
 }
 
-int writeValueArray(ValueArray* valarray, Value value) {
+int writeValueArray(Collector* collector, ValueArray* valarray, Value value) {
     if (valarray->count + 1 >= valarray->capacity) {
         int newcap = compute_capacity(valarray->capacity);
-        valarray->values = grow_array(Value, valarray->values, valarray->capacity, newcap);
+        valarray->values = grow_array(collector, Value, valarray->values, valarray->capacity, newcap);
         valarray->capacity = newcap; 
     }     
     valarray->values[valarray->count++] = value;
     return valarray->count - 1;
 }
 
-void freeValueArray(ValueArray* valarray) {
-    free_array(uint8_t, valarray->values, valarray->capacity);
+void freeValueArray(Collector* collector, ValueArray* valarray) {
+    free_array(collector, uint8_t, valarray->values, valarray->capacity);
     initValueArray(valarray);
 }
 
@@ -68,15 +68,15 @@ int valuesNumbers(Value a, Value b) {
     return is_number(a) && is_number(b);
 }
 
-Value concatenate(Value a, Value b) {
+Value concatenate(Collector* collector, Value a, Value b) {
     ObjString* sa = as_string(a);
     ObjString* sb = as_string(b);
     int length = sa->length + sb->length;
-    char* chars = allocate_block(char, length);
+    char* chars = allocate_block(collector, char, length);
     memcpy(chars, sa->chars, sa->length);
     memcpy(chars + sa->length, sb->chars, sb->length);
     chars[length] = '\0'; 
-    return to_vobj(takeString(chars, length));
+    return to_vobj(takeString(collector, chars, length));
 }
 
 void printValue(Value val) {

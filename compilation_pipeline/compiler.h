@@ -2,9 +2,12 @@
 #define compiler_h
 
 #include "../datastructs/chunk.h"
+#include "../memory.h"
 #include "lexer.h"
 
+
 typedef struct {
+    Collector* collector;
     Lexer lexer;
     Token current;
     Token previous;
@@ -13,7 +16,7 @@ typedef struct {
     int panic;
 } Compiler;
 
-void initCompiler(Compiler* compiler, char* source);
+void initCompiler(Compiler* compiler, Collector* collector, char* source);
 int compile(Compiler* compiler, Chunk* chunk);
 void freeCompiler(Compiler* compiler);
 

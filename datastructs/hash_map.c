@@ -18,12 +18,12 @@ static Entry* findEntry(Entry** entries, int capacity, Value key) {
     return NULL;
 }
 
-static int entriesPut(Entry** entries, int capacity, Value key, Value value) {
+static int entriesPut(Collector* collector, Entry** entries, int capacity, Value key, Value value) {
     Entry* head = findEntry(entries, capacity, key);
     if (head == NULL) {
         uint32_t hash = get_value_hash(key);
         int index = get_index(hash, capacity);
-        Entry* newhead = allocate_pointer(Entry, sizeof(Entry));
+        Entry* newhead = allocate_pointer(collector, Entry, sizeof(Entry));
         newhead->key = key;
         newhead->value = value;
         newhead->next = entries[index];
@@ -35,20 +35,20 @@ static int entriesPut(Entry** entries, int capacity, Value key, Value value) {
     }
 }
 
-static void growMap(HashMap* map) {
+static void growMap(Collector* collector, HashMap* map) {
     int newcap = compute_capacity(map->capacity);
-    Entry** newentries = allocate_block(Entry*, newcap);
+    Entry** newentries = allocate_block(collector, Entry*, newcap);
     for (int i = 0; i < newcap; i++) {
         newentries[i] = NULL;
     }
     for (int i = 0; i < map->capacity; i++) {
         Entry* head = map->entries[i];
         while (head != NULL) {
-            entriesPut(newentries, newcap, head->key, head->value);
+            entriesPut(collector, newentries, newcap, head->key, head->value);
             head = head->next;
         }
     }
-    free_array(Entry*, map->entries, map->capacity);
+    free_array(collector, Entry*, map->entries, map->capacity);
     map->entries = newentries;
     map->capacity = newcap;
 }
@@ -59,11 +59,11 @@ void initMap(HashMap* map) {
     map->capacity = 0;
 }
 
-int mapPut(HashMap* map, Value key, Value value) {
+int mapPut(Collector* collector, HashMap* map, Value key, Value value) {
     if (map->count + 1 > map->capacity * LOAD_FACTOR) {
-        growMap(map);
+        growMap(collector, map);
     }
-    int result = entriesPut(map->entries, map->capacity, key, value);
+    int result = entriesPut(collector, map->entries, map->capacity, key, value);
     if (!result)
         map->count++;
     return result;
@@ -78,7 +78,7 @@ int mapGet(HashMap* map, Value key, Value* result) {
     return 1;
 }
 
-int mapRemove(HashMap* map, Value key) {
+int mapRemove(Collector* collector, HashMap* map, Value key) {
     uint32_t hash = get_value_hash(key);
     int index = get_index(hash, map->capacity);
     Entry* dummy = (Entry*) malloc(sizeof(Entry));
@@ -91,7 +91,7 @@ int mapRemove(HashMap* map, Value key) {
             previous->next = current->next;
             if (current != dummy)
                 free(dummy);
-            free_pointer(current, sizeof(Entry));
+            free_pointer(collector, current, sizeof(Entry));
             return 1;
         }
         previous = current;
@@ -102,12 +102,12 @@ int mapRemove(HashMap* map, Value key) {
     return 0;
 }
 
-void freeMap(HashMap* map) {
+void freeMap(Collector* collector, HashMap* map) {
     for (int i = 0; i < map->capacity; i++) {
         if (map->entries[i] != NULL) {
-            free_pointer(map->entries[i], sizeof(Entry));
+            free_pointer(collector, map->entries[i], sizeof(Entry));
         }
     }
-    free_array(Entry*, map->entries, map->capacity);
+    free_array(collector, Entry*, map->entries, map->capacity);
     initMap(map);
 }

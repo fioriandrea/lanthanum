@@ -1,4 +1,3 @@
-#include "../standardtypes.h"
 #include "line_array.h"
 #include "../memory.h"
 
@@ -8,10 +7,10 @@ void initLineArray(LineArray* linearr) {
     linearr->lines = NULL;
 }
 
-int writeLineArray(LineArray* linearr, int line) {
+int writeLineArray(Collector* collector, LineArray* linearr, int line) {
     if (linearr->count + 1 >= linearr->capacity) {
         int newcap = compute_capacity(linearr->capacity);
-        linearr->lines = grow_array(LineData, linearr->lines, linearr->capacity, newcap);
+        linearr->lines = grow_array(collector, LineData, linearr->lines, linearr->capacity, newcap);
         linearr->capacity = newcap; 
     }
     if (linearr->count == 0 || linearr->lines[linearr->count - 1].line != line) {
@@ -24,8 +23,8 @@ int writeLineArray(LineArray* linearr, int line) {
     return linearr->count - 1;
 }
 
-void freeLineArray(LineArray* linearr) {
-    free_array(int, linearr->lines, linearr->capacity);
+void freeLineArray(Collector* collector, LineArray* linearr) {
+    free_array(collector, int, linearr->lines, linearr->capacity);
     initLineArray(linearr);
 }
 

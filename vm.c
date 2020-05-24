@@ -16,9 +16,10 @@ static void resetStack(VM* vm) {
     vm->sp = vm->stack;
 }
 
-void initVM(VM* vm) {
+void initVM(VM* vm, Collector* collector) {
     vm->chunk = NULL;
     vm->pc = NULL;
+    vm->collector = collector;
     resetStack(vm);
 }
 
@@ -252,7 +253,7 @@ static ExecutionResult vmRun(VM* vm) {
                     }
                     Value b = pop(vm);
                     Value a = pop(vm);
-                    push(vm, concatenate(a, b));
+                    push(vm, concatenate(vm->collector, a, b));
                     break;
                 }
             default:
@@ -271,7 +272,7 @@ ExecutionResult vmExecute(VM* vm, char* source) {
     Chunk chunk;
     initChunk(&chunk);
     Compiler compiler;
-    initCompiler(&compiler, source);
+    initCompiler(&compiler, vm->collector, source);
     int compileResult = compile(&compiler, &chunk);
     ExecutionResult result;
     if (compileResult) {
@@ -282,9 +283,10 @@ ExecutionResult vmExecute(VM* vm, char* source) {
         result = EXEC_COMPILE_ERROR;
     }
     freeCompiler(&compiler);
-    freeChunk(&chunk);
+    freeChunk(vm->collector, &chunk);
     return result;
 }
 
 void freeVM(VM* vm) {
+    freeCollector(vm->collector);
 }

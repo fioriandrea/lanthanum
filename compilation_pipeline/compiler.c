@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include "compiler.h"
-#include "../standardtypes.h"
 #include "../datastructs/chunk.h"
 #include "../datastructs/value.h"
 #include "../datastructs/object.h"
@@ -134,18 +133,19 @@ static void eatError(Compiler* compiler, TokenType type, char* msg) {
     }
 }
 
-void initCompiler(Compiler* compiler, char* source) {
+void initCompiler(Compiler* compiler, Collector* collector, char* source) {
     initLexer(&compiler->lexer, source);
     compiler->hadError = 0;
     compiler->panic = 0;
+    compiler->collector = collector;
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
-    writeChunk(compilingChunk(compiler), byte, compiler->current.line);
+    writeChunk(compiler->collector, compilingChunk(compiler), byte, compiler->current.line);
 }
 
 static void emitConstant(Compiler* compiler, Value val) {
-    writeConstant(compilingChunk(compiler), val, compiler->current.line);
+    writeConstant(compiler->collector, compilingChunk(compiler), val, compiler->current.line);
 }
 
 static void emitRet(Compiler* compiler) {
@@ -185,7 +185,7 @@ static void numberExpression(Compiler* compiler) {
 }
 
 static void stringExpression(Compiler* compiler) {
-    ObjString* string = copyString(compiler->current.start + 1, compiler->current.length - 2);
+    ObjString* string = copyString(compiler->collector, compiler->current.start + 1, compiler->current.length - 2);
     emitConstant(compiler, to_vobj(string));
     advance(compiler);
 }

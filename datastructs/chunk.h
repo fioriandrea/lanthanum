@@ -1,9 +1,10 @@
 #ifndef chunk_h
 #define chunk_h
 
-#include "../standardtypes.h"
+#include "../commontypes.h"
 #include "value.h"
 #include "line_array.h"
+#include "../util.h"
 
 typedef enum {
     OP_RET,
@@ -38,18 +39,9 @@ typedef struct {
     LineArray lines;
 } Chunk;
 
-typedef struct {
-    uint8_t b0;
-    uint8_t b1;
-} SplittedLong;
-
-#define join_bytes(b0, b1) ((uint16_t) (((uint16_t) (b0)) << 8) | ((uint16_t) (b1)))
-static inline SplittedLong split_long(uint16_t l) {
-    return (SplittedLong) {.b0 = (uint8_t) ((l & 0xff00) >> 8), .b1 = (uint8_t) (l & 0xff)};
-}
 void initChunk(Chunk* chunk);
-int writeChunk(Chunk* chunk, uint8_t byte, int line);
-void freeChunk(Chunk* chunk);
-int writeConstant(Chunk* chunk, Value value, int line);
+int writeChunk(Collector* collector, Chunk* chunk, uint8_t byte, int line);
+void freeChunk(Collector* collector, Chunk* chunk);
+int writeConstant(Collector* collector, Chunk* chunk, Value value, int line);
 
 #endif

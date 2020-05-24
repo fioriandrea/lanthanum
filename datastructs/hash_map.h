@@ -2,6 +2,7 @@
 #define hash_map_h
 
 #include "value.h"
+#include "../commontypes.h"
 
 struct sEntry {
     Value key;
@@ -18,9 +19,9 @@ typedef struct {
 } HashMap;
 
 void initMap(HashMap* map);
-int mapPut(HashMap* map, Value key, Value value);
+int mapPut(Collector* collector, HashMap* map, Value key, Value value);
 int mapGet(HashMap* map, Value key, Value* result);
-int mapRemove(HashMap* map, Value key);
-void freeMap(HashMap* map);
+int mapRemove(Collector* collector, HashMap* map, Value key);
+void freeMap(Collector* collector, HashMap* map);
 
 #endif

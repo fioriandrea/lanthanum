@@ -4,12 +4,17 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "standardtypes.h"
+#include "commontypes.h"
 
-union DoubleInt {
-    double dValue;
-    uint64_t iValue;
-};
+typedef struct {
+    uint8_t b0;
+    uint8_t b1;
+} SplittedLong;
+
+#define join_bytes(b0, b1) ((uint16_t) (((uint16_t) (b0)) << 8) | ((uint16_t) (b1)))
+static inline SplittedLong split_long(uint16_t l) {
+    return (SplittedLong) {.b0 = (uint8_t) ((l & 0xff00) >> 8), .b1 = (uint8_t) (l & 0xff)};
+}
 
 static inline uint32_t hash_int(uint32_t a) {
     a = (a + 0x7ed55d16) + (a << 12);

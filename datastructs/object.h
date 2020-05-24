@@ -1,7 +1,7 @@
 #ifndef object_h
 #define object_h
 
-#include "../standardtypes.h"
+#include "../commontypes.h"
 
 typedef enum {
     OBJ_STRING,
@@ -15,18 +15,15 @@ struct sObj {
 
 typedef struct sObj Obj;
 
-extern Obj* objList;
-
 typedef struct {
     Obj obj;
     int length;
     char* chars;
 } ObjString;
 
-ObjString* copyString(char* chars, int length);
-ObjString* takeString(char* chars, int length);
-void freeObject(Obj* object);
-void freeObjList();
+ObjString* copyString(Collector* collector, char* chars, int length);
+ObjString* takeString(Collector* collector, char* chars, int length);
+void freeObject(Collector* collector, Obj* object);
 void printObj(Obj* obj);
 
 #endif
