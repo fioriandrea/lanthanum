@@ -1,5 +1,5 @@
 #include "chunk.h"
-#include "../services/memory.h"
+#include "../memory.h"
 
 void initChunk(Chunk* chunk) {
     chunk->count = 0;

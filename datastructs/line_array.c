@@ -1,6 +1,6 @@
 #include "../standardtypes.h"
 #include "line_array.h"
-#include "../services/memory.h"
+#include "../memory.h"
 
 void initLineArray(LineArray* linearr) {
     linearr->count = 0;

@@ -2,11 +2,11 @@
 #include <stdlib.h>
 
 #include "datastructs/chunk.h"
-#include "services/asm_printer.h"
-#include "services/token_printer.h"
-#include "services/memory.h"
+#include "./debug/asm_printer.h"
+#include "./debug/token_printer.h"
+#include "memory.h"
 #include "vm.h"
-#include "lexer.h"
+#include "./compilation_pipeline/lexer.h"
 
 static char* readFile(const char* path) {
     FILE* file = fopen(path, "rb");

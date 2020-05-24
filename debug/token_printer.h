@@ -1,7 +1,7 @@
 #ifndef token_printer_h
 #define token_printer_h
 
-#include "../lexer.h"
+#include "../compilation_pipeline/lexer.h"
 
 void printToken(Token tok);
 

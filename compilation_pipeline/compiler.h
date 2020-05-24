@@ -1,7 +1,7 @@
 #ifndef compiler_h
 #define compiler_h
 
-#include "./datastructs/chunk.h"
+#include "../datastructs/chunk.h"
 #include "lexer.h"
 
 typedef struct {

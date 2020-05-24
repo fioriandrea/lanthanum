@@ -2,12 +2,12 @@
 #include <stdio.h>
 
 #include "compiler.h"
-#include "standardtypes.h"
-#include "./datastructs/chunk.h"
-#include "./datastructs/value.h"
-#include "./datastructs/object.h"
+#include "../standardtypes.h"
+#include "../datastructs/chunk.h"
+#include "../datastructs/value.h"
+#include "../datastructs/object.h"
 
-#include "./services/token_printer.h"
+#include "../debug/token_printer.h"
 #define TRACE_TOKENS 
 
 /*

@@ -3,7 +3,7 @@
 
 #include "object.h"
 #include "../util.h"
-#include "../services/memory.h"
+#include "../memory.h"
 
 Obj* objList = NULL;
 

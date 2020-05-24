@@ -2,7 +2,7 @@
 
 #include "value.h"
 #include "../util.h"
-#include "../services/memory.h"
+#include "../memory.h"
 
 #define debug_hash_codes
 

@@ -4,10 +4,10 @@
 #include <string.h>
 
 #include "vm.h"
-#include "./services/asm_printer.h"
-#include "./services/memory.h"
+#include "./debug/asm_printer.h"
+#include "memory.h"
 #include "./datastructs/value.h"
-#include "compiler.h"
+#include "./compilation_pipeline/compiler.h"
 
 #define TRACE_EXEC
 #define PRINT_CODE

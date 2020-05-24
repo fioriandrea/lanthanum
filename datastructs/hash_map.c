@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
 #include "hash_map.h"
-#include "../services/memory.h"
+#include "../memory.h"
 
 #define LOAD_FACTOR 0.65
 

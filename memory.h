@@ -1,7 +1,7 @@
 #ifndef memory_h
 #define memory_h
 
-#include "../standardtypes.h"
+#include "standardtypes.h"
 
 #define compute_capacity(oldcap) \
     ((oldcap) < 8 ? 8 : (oldcap) * 2)
