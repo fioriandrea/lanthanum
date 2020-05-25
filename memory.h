@@ -4,13 +4,12 @@
 #include <stdlib.h>
 
 #include "./commontypes.h"
-
 #include "./datastructs/value.h"
 #include "./datastructs/hash_map.h"
 
 struct sCollector {
-    Obj* objects;
     HashMap* interned;
+    Obj* objects;
     size_t allocated;
 };
 
@@ -35,10 +34,8 @@ struct sCollector {
 #define free_pointer(collector, pointer, size) \
     reallocate(collector, pointer, size, 0) 
 
-typedef struct sCollector Collector;
-
-void* reallocate(Collector* collector, void* pointer, size_t oldsize, size_t newsize); 
-void initCollector(Collector* collector, HashMap* map); 
-void freeCollector(Collector* collector); 
+void* reallocate(struct sCollector* collector, void* pointer, size_t oldsize, size_t newsize); 
+void initCollector(struct sCollector* collector, HashMap* map); 
+void freeCollector(struct sCollector* collector); 
 
 #endif

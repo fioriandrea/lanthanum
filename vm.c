@@ -11,15 +11,15 @@
 
 #define TRACE_EXEC
 #define PRINT_CODE
+#define RUNTIME_ERROR 0
+#define RUNTIME_OK 1
 
 static void resetStack(VM* vm) {
     vm->sp = vm->stack;
 }
 
-void initVM(VM* vm, Collector* collector) {
-    vm->chunk = NULL;
+void initVM(VM* vm) {
     vm->pc = NULL;
-    vm->collector = collector;
     resetStack(vm);
 }
 
@@ -50,7 +50,7 @@ static void runtimeError(VM* vm, char* format, ...) {
     resetStack(vm);                                    
 }    
 
-static ExecutionResult vmRun(VM* vm) {
+static int vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
 #define read_long() join_bytes(read_byte(), read_byte())
 #define read_constant() (vm->chunk->constants.values[read_byte()])
@@ -59,7 +59,7 @@ static ExecutionResult vmRun(VM* vm) {
     do { \
         if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
             runtimeError(vm, "operand must be numbers"); \
-            return EXEC_RUNTIME_ERROR; \
+            return RUNTIME_ERROR; \
         } \
         double b = as_cnumber(pop(vm)); \
         double a = as_cnumber(pop(vm)); \
@@ -99,7 +99,7 @@ static ExecutionResult vmRun(VM* vm) {
                     Value val = pop(vm);
                     printValue(val);
                     printf("\n");
-                    return EXEC_OK;
+                    return RUNTIME_OK;
                     break;
                 }
             case OP_CONST: 
@@ -118,7 +118,7 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     if (!is_number(peek(vm, 0))) {
                         runtimeError(vm, "only numbers can be negated");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     Value a = pop(vm);
                     push(vm, to_vnumber(-as_cnumber(a)));
@@ -143,11 +143,11 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     if (as_cnumber(peek(vm, 0)) == 0) {
                         runtimeError(vm, "cannot divide by zero (/ 0)");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     double b = as_cnumber(pop(vm)); 
                     double a = as_cnumber(pop(vm)); 
@@ -158,15 +158,15 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     if (as_cnumber(peek(vm, 0)) == 0) {
                         runtimeError(vm, "cannot divide by 0 (% 0)");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     if (!valuesIntegers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "only integer allowed when using %");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
 
                     double b = as_cnumber(pop(vm)); 
@@ -178,7 +178,7 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     double b = as_cnumber(pop(vm)); 
                     double a = as_cnumber(pop(vm)); 
@@ -249,7 +249,7 @@ static ExecutionResult vmRun(VM* vm) {
                 {
                     if (!valuesConcatenable(peek(vm, 0), peek(vm, 1))) {
                         runtimeError(vm, "values must be strings");
-                        return EXEC_RUNTIME_ERROR;
+                        return RUNTIME_ERROR;
                     }
                     Value b = pop(vm);
                     Value a = pop(vm);
@@ -259,7 +259,7 @@ static ExecutionResult vmRun(VM* vm) {
             default:
                 {
                     runtimeError(vm, "unknown instruction");
-                    return EXEC_RUNTIME_ERROR;
+                    return RUNTIME_ERROR;
                     break;
                 }
         }
@@ -268,25 +268,17 @@ static ExecutionResult vmRun(VM* vm) {
 #undef read_constant
 }
 
-ExecutionResult vmExecute(VM* vm, char* source) {
-    Chunk chunk;
-    initChunk(&chunk);
-    Compiler compiler;
-    initCompiler(&compiler, vm->collector, source);
-    int compileResult = compile(&compiler, &chunk);
-    ExecutionResult result;
-    if (compileResult) {
-        vm->chunk = &chunk;
-        vm->pc = chunk.code;
-        result = vmRun(vm);
-    } else {
-        result = EXEC_COMPILE_ERROR;
-    }
-    freeCompiler(&compiler);
-    freeChunk(vm->collector, &chunk);
+int vmExecute(VM* vm, Collector* collector, Chunk* chunk) {
+    initVM(vm);
+    vm->chunk = chunk;
+    vm->pc = vm->chunk->code;
+    vm->collector = collector;
+    int result = vmRun(vm);
+    freeVM(vm);
     return result;
 }
 
 void freeVM(VM* vm) {
     freeCollector(vm->collector);
+    freeChunk(NULL, vm->chunk);
 }

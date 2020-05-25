@@ -15,10 +15,10 @@ void initCollector(Collector* collector, HashMap* map) {
 }
 
 void freeCollector(Collector* collector) {
+    freeMap(NULL, collector->interned);
     while (collector->objects != NULL) {
         Obj* next = collector->objects->next;
         freeObject(NULL, collector->objects);
         collector->objects = next;
     }
-    freeMap(NULL, collector->interned);
 }

@@ -4,6 +4,7 @@
 #include "./datastructs/chunk.h"
 #include "./commontypes.h"
 #include "./datastructs/value.h"
+#include "./datastructs/hash_map.h"
 
 #define MAX_STACK 256
 
@@ -15,14 +16,8 @@ typedef struct {
     Collector* collector;
 } VM;
 
-typedef enum {
-    EXEC_OK,
-    EXEC_RUNTIME_ERROR,
-    EXEC_COMPILE_ERROR,
-} ExecutionResult;
-
-void initVM(VM* vm, Collector* collector);
-ExecutionResult vmExecute(VM* vm, char* source);  
+void initVM(VM* vm);
+int vmExecute(VM* vm, Collector* collector, Chunk* chunk);  
 void freeVM(VM* vm);
 
 #endif

@@ -133,11 +133,10 @@ static void eatError(Compiler* compiler, TokenType type, char* msg) {
     }
 }
 
-void initCompiler(Compiler* compiler, Collector* collector, char* source) {
-    initLexer(&compiler->lexer, source);
+void initCompiler(Compiler* compiler) {
     compiler->hadError = 0;
     compiler->panic = 0;
-    compiler->collector = collector;
+    compiler->collector = NULL;
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
@@ -284,16 +283,20 @@ static void expression(Compiler* compiler) {
     return commaExpression(compiler); 
 }
 
-int compile(Compiler* compiler, Chunk* chunk) {
+int compile(Compiler* compiler, Collector* collector, Chunk* chunk, char* source) {
+    initCompiler(compiler);
+    initLexer(&compiler->lexer, source);
+    compiler->collector = collector;
     compiler->compilingChunk = chunk;
+
     advance(compiler);
     expression(compiler);
     eatError(compiler, TOK_NEW_LINE, "expected new line");
     eatError(compiler, TOK_EOF, "expected EOF");
     emitRet(compiler);
+    freeLexer(&compiler->lexer);
     return !compiler->hadError;
 }
 
 void freeCompiler(Compiler* compiler) {
-    freeLexer(&compiler->lexer);
 }

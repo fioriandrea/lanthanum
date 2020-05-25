@@ -8,6 +8,7 @@
 #include "./memory.h"
 #include "vm.h"
 #include "./compilation_pipeline/lexer.h"
+#include "./compilation_pipeline/compiler.h"
 #include "./debug/map_printer.h"
 #include "./datastructs/hash_map.h"
 
@@ -39,27 +40,39 @@ static char* readFile(const char* path) {
     return buffer;
 }
 
-static void runFile(const char* fname, VM* vm) {
+static void runFile(const char* fname, VM* vm, Compiler* compiler, Collector* collector, Chunk* chunk) {
     char* source = readFile(fname);
-    ExecutionResult result = vmExecute(vm, source);
-    if (result == EXEC_COMPILE_ERROR || result == EXEC_RUNTIME_ERROR) 
+    int compilerResult = compile(compiler, collector, chunk, source);
+    if (!compilerResult) { // compile error
+        exit(1);
+    }
+    int runtimeResult = vmExecute(vm, collector, chunk);
+    if (!runtimeResult) { // compile error
         exit(1); 
+    }
 }
 
 int main(int argc, char **argv) {
-    HashMap interned;
-    initMap(&interned);
-    Collector collector;
-    initCollector(&collector, &interned);
-    VM vm;
-    initVM(&vm, &collector);
     if (argc <= 1) {
         fprintf(stderr, "error: missing files names\n");
         exit(1);
     }
-    for (int i = 1; i < argc; i++) {
-        runFile(argv[i], &vm);
-    }
-    freeVM(&vm);
+    // init Collector
+    HashMap interned;
+    initMap(&interned);
+    Collector collector;
+    initCollector(&collector, &interned);
+
+    // init VM
+    VM vm;
+    
+    // init compiler
+    Compiler compiler;
+
+    // init chunk
+    Chunk chunk;
+    initChunk(&chunk);
+
+    runFile(argv[1], &vm, &compiler, &collector, &chunk);
     return 0;
 }
