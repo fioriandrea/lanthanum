@@ -2,11 +2,14 @@
 
 #include "hash_map.h"
 #include "../memory.h"
+#include "../util.h"
 
 #define LOAD_FACTOR 0.65 
 #define get_index(hash, capacity) ((hash) & ((capacity) - 1))
 
 static Entry* findEntry(Entry** entries, int capacity, Value key) {
+    if (entries == NULL)
+        return NULL;
     uint32_t hash = get_value_hash(key);
     Entry* head = entries[get_index(hash, capacity)];
     while (head != NULL) {
@@ -79,6 +82,8 @@ int mapGet(HashMap* map, Value key, Value* result) {
 }
 
 int mapRemove(Collector* collector, HashMap* map, Value key) {
+    if (map->count == 0)
+        return 0;
     uint32_t hash = get_value_hash(key);
     int index = get_index(hash, map->capacity);
     Entry* dummy = (Entry*) malloc(sizeof(Entry));
@@ -110,4 +115,22 @@ void freeMap(Collector* collector, HashMap* map) {
     }
     free_array(collector, Entry*, map->entries, map->capacity);
     initMap(map);
+}
+
+ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length) {
+    if (map->count == 0)
+        return NULL;
+    uint32_t hash = hash_string(chars, length);
+    int index = get_index(hash, map->capacity);
+    Entry* head = map->entries[index];
+    while (head != NULL) {
+        Value key = head->key;
+        if (!is_string(key)) 
+            continue;
+        ObjString* objString = as_string(head->key);
+        if (objString->length == length && memcmp(chars, objString->chars, length) == 0)
+            return objString;
+        head = head->next;
+    }
+    return NULL;
 }

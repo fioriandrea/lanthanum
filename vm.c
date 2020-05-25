@@ -5,12 +5,14 @@
 
 #include "vm.h"
 #include "./debug/asm_printer.h"
+#include "./debug/map_printer.h"
 #include "memory.h"
 #include "./datastructs/value.h"
 #include "./compilation_pipeline/compiler.h"
 
 #define TRACE_EXEC
 #define PRINT_CODE
+#define TRACE_INTERNED
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1
 
@@ -279,6 +281,10 @@ int vmExecute(VM* vm, Collector* collector, Chunk* chunk) {
 }
 
 void freeVM(VM* vm) {
+#ifdef TRACE_INTERNED
+    printf("INTERNED:\n");
+    printMap(vm->collector->interned);
+#endif
     freeCollector(vm->collector);
     freeChunk(NULL, vm->chunk);
 }

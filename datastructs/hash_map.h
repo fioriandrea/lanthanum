@@ -22,7 +22,7 @@ void initMap(HashMap* map);
 int mapPut(Collector* collector, HashMap* map, Value key, Value value);
 int mapGet(HashMap* map, Value key, Value* result);
 int mapRemove(Collector* collector, HashMap* map, Value key);
-int containsDeepEqual(HashMap* map, Value key);
+ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length);
 void freeMap(Collector* collector, HashMap* map);
 
 #endif

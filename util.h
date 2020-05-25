@@ -25,6 +25,17 @@ static inline uint32_t hash_int(uint32_t a) {
     a = (a ^ 0xb55a4f09) ^ (a >> 16);
     return a;
 }
+
+static inline uint32_t hash_string(char* key, int length) {
+    uint32_t hash = 2166136261u;
+
+    for (int i = 0; i < length; i++) {                     
+        hash ^= key[i];                                      
+        hash *= 16777619;                                    
+    }                                                      
+
+    return hash;                                           
+}     
 #define hash_pointer(p) hash_int((uint32_t) (p))
 #define hash_double(v) hash_int(float_to_bits((float) v))
 
