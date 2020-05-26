@@ -144,13 +144,13 @@ static void emitByte(Compiler* compiler, uint8_t byte) {
 }
 
 static void emitConstant(Compiler* compiler, Value val) {
-    writeConstant(compiler->collector, compilingChunk(compiler), val, compiler->current.line);
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_CONST_LONG, OP_CONST, val, compiler->current.line);
 }
 
 static void emitGlobalDecl(Compiler* compiler, Token identifier) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
-    writeGlobalDeclaration(compiler->collector, compilingChunk(compiler), name, compiler->current.line);
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_DECL_LONG, OP_GLOBAL_DECL, name, compiler->current.line);
 }
 
 static void emitRet(Compiler* compiler) {

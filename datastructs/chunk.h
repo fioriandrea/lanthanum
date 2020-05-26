@@ -45,7 +45,7 @@ typedef struct {
 void initChunk(Chunk* chunk);
 int writeChunk(Collector* collector, Chunk* chunk, uint8_t byte, int line);
 void freeChunk(Collector* collector, Chunk* chunk);
-int writeConstant(Collector* collector, Chunk* chunk, Value value, int line);
-int writeGlobalDeclaration(Collector* collector, Chunk* chunk, Value name, int line);
+int writeVariableSizeOp(Collector* collector, Chunk* chunk, OpCode oplong, OpCode opshort, uint16_t argument, int line);
+int writeAddressableInstruction(Collector* collector, Chunk* chunk, OpCode oplong, OpCode opshort, Value val, int line);
 
 #endif
