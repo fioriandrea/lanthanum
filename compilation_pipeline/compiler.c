@@ -283,6 +283,44 @@ static void expression(Compiler* compiler) {
     return commaExpression(compiler); 
 }
 
+static void expressionStat(Compiler* compiler) {
+    expression(compiler);
+    emitByte(compiler, OP_POP);
+}
+
+static void printStat(Compiler* compiler) {
+    advance(compiler); // skip 'print'
+    expression(compiler);
+    emitByte(compiler, OP_PRINT);
+    emitByte(compiler, OP_POP);
+}
+
+static void statement(Compiler* compiler) {
+    switch (currentTokenType(compiler)) {
+        case TOK_PRINT:
+            printStat(compiler);
+            break;
+        default:
+            expressionStat(compiler);
+            break;
+    }
+    eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
+}
+
+static void declaration(Compiler* compiler) {
+    switch (currentTokenType(compiler)) {
+        default:
+            statement(compiler);
+            break;
+    }
+}
+
+static void declarationList(Compiler* compiler) {
+    while (!check(compiler, TOK_EOF)) {
+        declaration(compiler);
+    }
+}
+
 int compile(Compiler* compiler, Collector* collector, Chunk* chunk, char* source) {
     initCompiler(compiler);
     initLexer(&compiler->lexer, source);
@@ -290,9 +328,7 @@ int compile(Compiler* compiler, Collector* collector, Chunk* chunk, char* source
     compiler->compilingChunk = chunk;
 
     advance(compiler);
-    expression(compiler);
-    eatError(compiler, TOK_NEW_LINE, "expected new line");
-    eatError(compiler, TOK_EOF, "expected EOF");
+    declarationList(compiler);
     emitRet(compiler);
     freeLexer(&compiler->lexer);
     return !compiler->hadError;

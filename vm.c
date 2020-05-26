@@ -98,9 +98,6 @@ static int vmRun(VM* vm) {
         switch (read_byte()) {
             case OP_RET: 
                 {
-                    Value val = pop(vm);
-                    printValue(val);
-                    printf("\n");
                     return RUNTIME_OK;
                     break;
                 }
@@ -256,6 +253,13 @@ static int vmRun(VM* vm) {
                     Value b = pop(vm);
                     Value a = pop(vm);
                     push(vm, concatenate(vm->collector, a, b));
+                    break;
+                }
+            case OP_PRINT:
+                {
+                    Value val = peek(vm, 0);
+                    printValue(val);
+                    printf("\n");
                     break;
                 }
             default:

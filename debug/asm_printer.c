@@ -61,6 +61,7 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
                 print_simple_instruction(OP_GREATER_EQUAL)
                 print_simple_instruction(OP_EQUAL)
                 print_simple_instruction(OP_CONCAT)
+                print_simple_instruction(OP_PRINT)
         default:
                 printf("Undefined instruction: [opcode = %d]\n", code);
                 return offset + 1;
