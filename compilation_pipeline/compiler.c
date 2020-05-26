@@ -147,6 +147,12 @@ static void emitConstant(Compiler* compiler, Value val) {
     writeConstant(compiler->collector, compilingChunk(compiler), val, compiler->current.line);
 }
 
+static void emitGlobalDecl(Compiler* compiler, Token identifier) {
+    ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+    Value name = to_vobj(strname);
+    writeGlobalDeclaration(compiler->collector, compilingChunk(compiler), name, compiler->current.line);
+}
+
 static void emitRet(Compiler* compiler) {
     emitByte(compiler, OP_RET);
 }
@@ -295,8 +301,23 @@ static void printStat(Compiler* compiler) {
     emitByte(compiler, OP_POP);
 }
 
+static void letStat(Compiler* compiler) {
+    advance(compiler); // skip 'let'
+    eatError(compiler, TOK_IDENTIFIER, "expected identifier after \"let\"");
+    Token identifier = compiler->previous;
+    if (eat(compiler, TOK_EQUAL)) {
+        expression(compiler);
+    } else {
+        emitByte(compiler, OP_CONST_NIHL);
+    }
+    emitGlobalDecl(compiler, identifier);
+}
+
 static void statement(Compiler* compiler) {
     switch (currentTokenType(compiler)) {
+        case TOK_LET:
+            letStat(compiler);
+            break;
         case TOK_PRINT:
             printStat(compiler);
             break;
@@ -307,17 +328,9 @@ static void statement(Compiler* compiler) {
     eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
 }
 
-static void declaration(Compiler* compiler) {
-    switch (currentTokenType(compiler)) {
-        default:
-            statement(compiler);
-            break;
-    }
-}
-
-static void declarationList(Compiler* compiler) {
+static void statementList(Compiler* compiler) {
     while (!check(compiler, TOK_EOF)) {
-        declaration(compiler);
+        statement(compiler);
     }
 }
 
@@ -328,7 +341,7 @@ int compile(Compiler* compiler, Collector* collector, Chunk* chunk, char* source
     compiler->compilingChunk = chunk;
 
     advance(compiler);
-    declarationList(compiler);
+    statementList(compiler);
     emitRet(compiler);
     freeLexer(&compiler->lexer);
     return !compiler->hadError;

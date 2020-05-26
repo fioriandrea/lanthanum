@@ -19,7 +19,7 @@ Obj* allocateObj(Collector* collector, ObjType type, size_t size) {
 
 ObjString* copyString(Collector* collector, char* chars, int length) {
     ObjString* str;
-    if ((str = containsStringDeepEqual(collector->interned, chars, length)) != NULL) {
+    if ((str = containsStringDeepEqual(&collector->interned, chars, length)) != NULL) {
         return str;
     }
     char* copied = allocate_block(collector, char, length + 1);
@@ -30,7 +30,7 @@ ObjString* copyString(Collector* collector, char* chars, int length) {
 
 ObjString* takeString(Collector* collector, char* chars, int length) {
     ObjString* str;
-    if ((str = containsStringDeepEqual(collector->interned, chars, length)) != NULL) {
+    if ((str = containsStringDeepEqual(&collector->interned, chars, length)) != NULL) {
         free_block(collector, char, chars, length);
         return str;
     }
@@ -38,7 +38,7 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
     string->chars = chars;
     string->length = length;
     ((Obj*) string)->hash = hash_string(chars, length);
-    mapPut(collector, collector->interned, to_vobj(string), to_vnihl());
+    mapPut(collector, &collector->interned, to_vobj(string), to_vnihl());
     return string;
 }
 

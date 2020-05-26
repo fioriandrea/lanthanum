@@ -8,7 +8,7 @@
 #include "./datastructs/hash_map.h"
 
 struct sCollector {
-    HashMap* interned;
+    HashMap interned;
     Obj* objects;
     size_t allocated;
 };
@@ -35,7 +35,7 @@ struct sCollector {
     reallocate(collector, pointer, size, 0) 
 
 void* reallocate(struct sCollector* collector, void* pointer, size_t oldsize, size_t newsize); 
-void initCollector(struct sCollector* collector, HashMap* map); 
+void initCollector(struct sCollector* collector); 
 void freeCollector(struct sCollector* collector); 
 
 #endif

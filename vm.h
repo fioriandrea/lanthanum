@@ -14,6 +14,7 @@ typedef struct {
     Value stack[MAX_STACK];
     Value* sp;
     Collector* collector;
+    HashMap globals;
 } VM;
 
 void initVM(VM* vm);

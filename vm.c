@@ -13,6 +13,7 @@
 #define TRACE_EXEC
 #define PRINT_CODE
 #define TRACE_INTERNED
+#define TRACE_GLOBALS
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1
 
@@ -23,6 +24,7 @@ static void resetStack(VM* vm) {
 void initVM(VM* vm) {
     vm->pc = NULL;
     resetStack(vm);
+    initMap(&vm->globals);
 }
 
 static Value peek(VM* vm, int depth) {
@@ -111,6 +113,20 @@ static int vmRun(VM* vm) {
                 {
                     Value constant = read_constant_long();
                     push(vm, constant);
+                    break;
+                }
+            case OP_GLOBAL_DECL:
+                {
+                    Value name = read_constant();
+                    mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
+                    pop(vm); 
+                    break;
+                }
+            case OP_GLOBAL_DECL_LONG:
+                {
+                    Value name = read_constant_long();
+                    mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
+                    pop(vm); 
                     break;
                 }
             case OP_NEGATE:
@@ -272,6 +288,7 @@ static int vmRun(VM* vm) {
     }
 #undef read_byte
 #undef read_constant
+#undef read_constant_long
 }
 
 int vmExecute(VM* vm, Collector* collector, Chunk* chunk) {
@@ -287,8 +304,15 @@ int vmExecute(VM* vm, Collector* collector, Chunk* chunk) {
 void freeVM(VM* vm) {
 #ifdef TRACE_INTERNED
     printf("INTERNED:\n");
-    printMap(vm->collector->interned);
+    printMap(&vm->collector->interned);
+    printf("\n");
+#endif
+#ifdef TRACE_GLOBALS
+    printf("GLOBALS:\n");
+    printMap(&vm->globals);
+    printf("\n");
 #endif
     freeCollector(vm->collector);
     freeChunk(NULL, vm->chunk);
+    freeMap(NULL, &vm->globals);
 }

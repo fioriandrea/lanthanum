@@ -30,6 +30,8 @@ typedef enum {
     OP_NOT_EQUAL,
     OP_CONCAT,
     OP_PRINT,
+    OP_GLOBAL_DECL,
+    OP_GLOBAL_DECL_LONG,
 } OpCode;
 
 typedef struct {
@@ -44,5 +46,6 @@ void initChunk(Chunk* chunk);
 int writeChunk(Collector* collector, Chunk* chunk, uint8_t byte, int line);
 void freeChunk(Collector* collector, Chunk* chunk);
 int writeConstant(Collector* collector, Chunk* chunk, Value value, int line);
+int writeGlobalDeclaration(Collector* collector, Chunk* chunk, Value name, int line);
 
 #endif

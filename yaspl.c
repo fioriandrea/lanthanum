@@ -57,19 +57,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "error: missing files names\n");
         exit(1);
     }
-    // init Collector
-    HashMap interned;
-    initMap(&interned);
     Collector collector;
-    initCollector(&collector, &interned);
-
-    // init VM
+    initCollector(&collector);
     VM vm;
-    
-    // init compiler
     Compiler compiler;
-
-    // init chunk
     Chunk chunk;
     initChunk(&chunk);
 

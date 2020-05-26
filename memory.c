@@ -8,14 +8,15 @@ void* reallocate(Collector* collector, void* pointer, size_t oldsize, size_t new
     return realloc(pointer, newsize);
 }
 
-void initCollector(Collector* collector, HashMap* map) {
+void initCollector(Collector* collector) {
     collector->allocated = 0;
     collector->objects = NULL;
-    collector->interned = map;
+    initMap(&collector->interned);
 }
 
 void freeCollector(Collector* collector) {
-    freeMap(NULL, collector->interned);
+    // todo: be sure that map is garbage collected
+    freeMap(NULL, &collector->interned);
     while (collector->objects != NULL) {
         Obj* next = collector->objects->next;
         freeObject(NULL, collector->objects);
