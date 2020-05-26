@@ -129,6 +129,17 @@ static int vmRun(VM* vm) {
                     pop(vm); 
                     break;
                 }
+            case OP_GLOBAL_GET:
+                {
+                    Value name = read_constant();
+                    Value value;
+                    if (!mapGet(&vm->globals, name, &value)) {
+                        push(vm, to_vnihl());
+                    } else {
+                        push(vm, value);
+                    }
+                    break;
+                }
             case OP_NEGATE:
                 {
                     if (!is_number(peek(vm, 0))) {

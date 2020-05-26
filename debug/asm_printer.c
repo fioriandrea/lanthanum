@@ -45,6 +45,8 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             print_addressed_long_instruction(OP_CONST_LONG)
             print_addressed_instruction(OP_GLOBAL_DECL)
             print_addressed_long_instruction(OP_GLOBAL_DECL_LONG)
+            print_addressed_instruction(OP_GLOBAL_GET)
+            print_addressed_long_instruction(OP_GLOBAL_GET_LONG)
             print_simple_instruction(OP_RET)
             print_simple_instruction(OP_NEGATE)
             print_simple_instruction(OP_ADD)

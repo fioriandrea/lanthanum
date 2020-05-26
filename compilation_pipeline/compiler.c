@@ -153,6 +153,12 @@ static void emitGlobalDecl(Compiler* compiler, Token identifier) {
     writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_DECL_LONG, OP_GLOBAL_DECL, name, compiler->current.line);
 }
 
+static void emitGlobalGet(Compiler* compiler, Token identifier) {
+    ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+    Value name = to_vobj(strname);
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_GET_LONG, OP_GLOBAL_GET, name, compiler->current.line);
+}
+
 static void emitRet(Compiler* compiler) {
     emitByte(compiler, OP_RET);
 }
@@ -195,6 +201,12 @@ static void stringExpression(Compiler* compiler) {
     advance(compiler);
 }
 
+static void identifierExpression(Compiler* compiler) {
+    Token identifier = compiler->current;
+    emitGlobalGet(compiler, identifier);
+    advance(compiler); 
+}
+
 static void basicExpression(Compiler* compiler) {
     switch (currentTokenType(compiler)) {
         case TOK_STRING:
@@ -214,6 +226,9 @@ static void basicExpression(Compiler* compiler) {
         case TOK_NIHL:
             emitByte(compiler, OP_CONST_NIHL);
             advance(compiler);
+            break;
+        case TOK_IDENTIFIER:
+            identifierExpression(compiler);
             break;
         default:
             errorAtCurrent(compiler, "unexpected token");
