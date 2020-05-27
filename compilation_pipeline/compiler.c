@@ -62,6 +62,7 @@
     }       
 
 static void expression(Compiler* compiler);
+static void statement(Compiler* compiler);
 
 static Chunk* compilingChunk(Compiler* compiler) {
     return compiler->compilingChunk;
@@ -138,6 +139,8 @@ void initCompiler(Compiler* compiler) {
     compiler->hadError = 0;
     compiler->panic = 0;
     compiler->collector = NULL;
+    compiler->scope.count = 0;
+    compiler->scope.depth = 0;
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
@@ -164,6 +167,46 @@ static void emitGlobalSet(Compiler* compiler, Token identifier) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
     writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_SET_LONG, OP_GLOBAL_SET, name, compiler->previous.line);
+}
+
+static int identifiersEqual(Token id1, Token id2) {
+    return id1.length == id2.length &&
+        memcmp(id1.start, id2.start, id1.length) == 0;
+}
+
+static int indexLocal(Compiler* compiler, Token identifier) {
+    for (int i = compiler->scope.count - 1; i >= 0; i--) {   
+        Local* local = &compiler->scope.locals[i];                  
+        if (identifiersEqual(identifier, local->name)) {           
+            return i;                                           
+        }                                                     
+    }
+    return -1; 
+}
+
+static void emitLocalGet(Compiler* compiler, Token identifier) {
+    int index = indexLocal(compiler, identifier);
+    if (index < 0) {
+        emitGlobalGet(compiler, identifier);
+    } else {
+        if (compiler->scope.locals[index].depth < 0) { 
+            errorAtCurrent(compiler, "cannot read local variable in its own initializer");
+        }
+        ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+        Value name = to_vobj(strname);
+        writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_GET_LONG, OP_LOCAL_GET, (uint16_t) index, compiler->previous.line);
+    }
+}
+
+static void emitLocalSet(Compiler* compiler, Token identifier) {
+    int index = indexLocal(compiler, identifier);
+    if (index < 0) {
+        emitGlobalSet(compiler, identifier);
+    } else {
+        ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+        Value name = to_vobj(strname);
+        writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_SET_LONG, OP_LOCAL_SET, (uint16_t) index, compiler->previous.line);
+    }
 }
 
 static void emitRet(Compiler* compiler) {
@@ -196,6 +239,34 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
     }
 }
 
+static int alreadyDeclaredLocal(Scope* scope, Token identifier) {
+    for (int i = scope->count - 1; i >= 0; i--) {
+        if (scope->locals[i].depth < scope->depth)
+            return 0;
+        if (identifiersEqual(scope->locals[i].name, identifier))
+            return 1;
+    }
+    return 0; // unreachable
+}
+
+static void declareLocal(Compiler* compiler, Token identifier) {
+    Scope* scope = &compiler->scope;
+    if (alreadyDeclaredLocal(scope, identifier)) {
+        errorAtCurrent(compiler, "variable with this name already declared in this scope");
+        return;
+    }
+    Local* local = &scope->locals[scope->count];
+    local->name = identifier;
+    local->depth = -1;
+    scope->count++;
+}
+
+static void defineLocal(Compiler* compiler, Token identifier) {
+    int index = indexLocal(compiler, identifier);
+    // todo: check if index >= 0 ?
+    compiler->scope.locals[index].depth = compiler->scope.depth;
+}
+
 static void numberExpression(Compiler* compiler) {
     double val = strtod(compiler->current.start, NULL);
     emitConstant(compiler, to_vnumber(val));
@@ -211,11 +282,21 @@ static void stringExpression(Compiler* compiler) {
 static void identifierExpression(Compiler* compiler, int canAssign) {
     Token identifier = compiler->current;
     advance(compiler);
+    void (*emitGet)(Compiler*, Token) = NULL;
+    void (*emitSet)(Compiler*, Token) = NULL;
+    if (compiler->scope.depth > 0) { // locals realm
+        emitGet = &emitLocalGet;
+        emitSet = &emitLocalSet;
+    } else {
+        emitGet = &emitGlobalGet;
+        emitSet = &emitGlobalSet;
+    }
+
     if (canAssign && eat(compiler, TOK_EQUAL)) {
         expression(compiler);
-        emitGlobalSet(compiler, identifier);
+        (*emitSet)(compiler, identifier);
     } else {
-        emitGlobalGet(compiler, identifier);
+        (*emitGet)(compiler, identifier);
     }
 }
 
@@ -288,7 +369,7 @@ static void powExpression(Compiler* compiler, int canAssign) {
 }
 
 standard_binary_expression(multExpression, powExpression,
-    check(compiler, TOK_STAR) || check(compiler, TOK_SLASH) || check(compiler, TOK_PERCENTAGE))
+        check(compiler, TOK_STAR) || check(compiler, TOK_SLASH) || check(compiler, TOK_PERCENTAGE))
 
 standard_binary_expression(addExpression, multExpression,
         check(compiler, TOK_PLUS) || check(compiler, TOK_MINUS) || check(compiler, TOK_PLUS_PLUS))
@@ -300,9 +381,9 @@ standard_binary_expression(comparisonExpression, addExpression,
 standard_binary_expression(equalExpression, comparisonExpression, 
         check(compiler, TOK_EQUAL_EQUAL) || check(compiler, TOK_NOT_EQUAL))
 
-static void nonCommaExpression(Compiler* compiler) {
-    equalExpression(compiler, 1);
-}
+    static void nonCommaExpression(Compiler* compiler) {
+        equalExpression(compiler, 1);
+    }
 
 static void commaExpression(Compiler* compiler) {
     nonCommaExpression(compiler);
@@ -319,6 +400,7 @@ static void expression(Compiler* compiler) {
 static void expressionStat(Compiler* compiler) {
     expression(compiler);
     emitByte(compiler, OP_POP);
+    eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
 }
 
 static void printStat(Compiler* compiler) {
@@ -326,18 +408,56 @@ static void printStat(Compiler* compiler) {
     expression(compiler);
     emitByte(compiler, OP_PRINT);
     emitByte(compiler, OP_POP);
+    eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
 }
 
 static void letStat(Compiler* compiler) {
     advance(compiler); // skip 'let'
     eatError(compiler, TOK_IDENTIFIER, "expected identifier after \"let\"");
     Token identifier = compiler->previous;
+    if (compiler->scope.depth > 0) {
+        declareLocal(compiler, identifier);
+    }
     if (eat(compiler, TOK_EQUAL)) {
         expression(compiler);
     } else {
         emitByte(compiler, OP_CONST_NIHL);
     }
-    emitGlobalDecl(compiler, identifier);
+    if (compiler->scope.depth == 0) {
+        emitGlobalDecl(compiler, identifier);
+    } else {
+        defineLocal(compiler, identifier);
+    }
+    eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
+}
+
+static void block(Compiler* compiler) {
+    while (currentTokenType(compiler) != TOK_EOF && currentTokenType(compiler) != TOK_DEDENT) {
+        statement(compiler);
+    }
+    eatError(compiler, TOK_DEDENT, "missing dedent to close block");
+    //eatError(compiler, TOK_NEW_LINE, "expect new line after dedent");
+}
+
+static void startScope(Compiler* compiler) {
+    compiler->scope.depth++;
+}
+
+static void endScope(Compiler* compiler) {
+    Scope* scope = &compiler->scope;
+    while (scope->count > 0 && scope->locals[scope->count - 1].depth == scope->depth) {
+        emitByte(compiler, OP_POP);
+        scope->count--;
+    }
+    compiler->scope.depth--;
+}
+
+static void blockStat(Compiler* compiler) {
+    advance(compiler);
+    //eatError(compiler, TOK_NEW_LINE, "expect new line after indent");
+    startScope(compiler);
+    block(compiler);
+    endScope(compiler);
 }
 
 static void statement(Compiler* compiler) {
@@ -348,11 +468,13 @@ static void statement(Compiler* compiler) {
         case TOK_PRINT:
             printStat(compiler);
             break;
+        case TOK_INDENT:
+            blockStat(compiler);
+            break;
         default:
             expressionStat(compiler);
             break;
     }
-    eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
 }
 
 static void statementList(Compiler* compiler) {

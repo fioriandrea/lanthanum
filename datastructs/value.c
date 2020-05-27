@@ -4,7 +4,7 @@
 #include "../util.h"
 #include "../memory.h"
 
-#define debug_hash_codes
+//#define debug_hash_codes
 
 int isObjType(Value value, ObjType type) {
     return is_obj(value) && as_obj(value)->type == type;

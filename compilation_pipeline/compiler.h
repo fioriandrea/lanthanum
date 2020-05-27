@@ -6,6 +6,18 @@
 #include "lexer.h"
 #include "../datastructs/hash_map.h"
 
+struct sLocal {
+    Token name;
+    int depth;
+};
+
+typedef struct sLocal Local;
+
+typedef struct {
+    int depth;
+    Local locals[256];
+    int count;
+} Scope;
 
 typedef struct {
     Lexer lexer;
@@ -15,6 +27,7 @@ typedef struct {
     Chunk* compilingChunk;
     int hadError;
     int panic;
+    Scope scope;
 } Compiler;
 
 void initCompiler(Compiler* compiler);

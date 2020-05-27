@@ -179,6 +179,30 @@ static int vmRun(VM* vm) {
                     }
                     break;
                 }
+            case OP_LOCAL_GET:
+                {
+                    uint8_t argument = read_byte();
+                    push(vm, vm->stack[argument]);
+                    break;
+                }
+            case OP_LOCAL_GET_LONG:
+                {
+                    uint16_t argument = read_long();
+                    push(vm, vm->stack[argument]);
+                    break;
+                }
+            case OP_LOCAL_SET:
+                {
+                    uint8_t argument = read_byte();
+                    vm->stack[argument] = peek(vm, 0);
+                    break;
+                }
+            case OP_LOCAL_SET_LONG:
+                {
+                    uint8_t argument = read_long();
+                    vm->stack[argument] = peek(vm, 0);
+                    break;
+                }
             case OP_NEGATE:
                 {
                     if (!is_number(peek(vm, 0))) {

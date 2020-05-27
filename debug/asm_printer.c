@@ -28,6 +28,18 @@ static int printAddressedLongInstruction(char* instname, Chunk* chunk, int offse
     return offset + 3;
 }
 
+static int printArgumentedInstruction(char* instname, Chunk* chunk, int offset) {
+    uint8_t arg = chunk->code[offset + 1];
+    printf("%s arg:[%d]\n", instname, arg);
+    return offset + 2;
+}
+
+static int printArgumentedLongInstruction(char* instname, Chunk* chunk, int offset) {
+    uint16_t arg = join_bytes(chunk->code[offset + 1], chunk->code[offset + 2]);
+    printf("%s arg:[%d]\n", instname, arg);
+    return offset + 3;
+}
+
 void printChunk(Chunk* chunk, char* name) {
     printf("chunk => %s\n", name);
     for (int i = 0; i < chunk->count; ) {
@@ -39,6 +51,8 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
 #define print_simple_instruction(op) case op: return printSimpleInstruction(#op, offset);
 #define print_addressed_instruction(op) case op: return printAddressedInstruction(#op, chunk, offset);
 #define print_addressed_long_instruction(op) case op: return printAddressedLongInstruction(#op, chunk, offset);
+#define print_argumented_instruction(op) case op: return printArgumentedInstruction(#op, chunk, offset);
+#define print_argumented_long_instruction(op) case op: return printArgumentedLongInstruction(#op, chunk, offset);
     printf("line = %d: ", lineArrayGet(&chunk->lines, offset));
     switch (code) {
         print_addressed_instruction(OP_CONST)
@@ -49,6 +63,10 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             print_addressed_long_instruction(OP_GLOBAL_GET_LONG)
             print_addressed_instruction(OP_GLOBAL_SET)
             print_addressed_long_instruction(OP_GLOBAL_SET_LONG)
+            print_argumented_instruction(OP_LOCAL_GET)
+            print_argumented_long_instruction(OP_LOCAL_GET_LONG)
+            print_argumented_instruction(OP_LOCAL_SET)
+            print_argumented_long_instruction(OP_LOCAL_SET_LONG)
             print_simple_instruction(OP_RET)
             print_simple_instruction(OP_NEGATE)
             print_simple_instruction(OP_ADD)
@@ -76,4 +94,6 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
 #undef print_addressed_instruction
 #undef print_addressed_long_instruction
 #undef print_simple_instruction
+#undef print_argumented_instruction
+#undef print_argumented_long_instruction
 }
