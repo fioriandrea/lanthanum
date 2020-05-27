@@ -133,10 +133,49 @@ static int vmRun(VM* vm) {
                 {
                     Value name = read_constant();
                     Value value;
-                    if (!mapGet(&vm->globals, name, &value)) {
-                        push(vm, to_vnihl());
+                    int present = mapGet(&vm->globals, name, &value);
+                    if (!present) {
+                        runtimeError(vm, "cannot get value of undefined global variable");
+                        return RUNTIME_ERROR;
                     } else {
                         push(vm, value);
+                    }
+                    break;
+                }
+            case OP_GLOBAL_GET_LONG:
+                {
+                    Value name = read_constant_long();
+                    Value value;
+                    int present = mapGet(&vm->globals, name, &value);
+                    if (!present) {
+                        runtimeError(vm, "cannot get value of undefined global variable");
+                        return RUNTIME_ERROR;
+                    } else {
+                        push(vm, value);
+                    }
+                    break;
+                }
+            case OP_GLOBAL_SET:
+                {
+                    Value name = read_constant();
+                    Value value;
+                    if (!mapGet(&vm->globals, name, &value)) {
+                        runtimeError(vm, "cannot assign undefined global variable");
+                        return RUNTIME_ERROR;
+                    } else {
+                        mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
+                    }
+                    break;
+                }
+            case OP_GLOBAL_SET_LONG:
+                {
+                    Value name = read_constant_long();
+                    Value value;
+                    if (!mapGet(&vm->globals, name, &value)) {
+                        runtimeError(vm, "cannot assign undefined global variable");
+                        return RUNTIME_ERROR;
+                    } else {
+                        mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
                     }
                     break;
                 }

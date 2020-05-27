@@ -34,6 +34,8 @@ typedef enum {
     OP_GLOBAL_DECL_LONG,
     OP_GLOBAL_GET,
     OP_GLOBAL_GET_LONG,
+    OP_GLOBAL_SET,
+    OP_GLOBAL_SET_LONG,
 } OpCode;
 
 typedef struct {

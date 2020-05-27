@@ -50,13 +50,13 @@
    */
 
 #define standard_binary_expression(name, next, condition) \
-    static void name(Compiler* compiler) { \
+    static void name(Compiler* compiler, int canAssign) { \
         TokenType operator; \
-        next(compiler); \
+        next(compiler, canAssign); \
         while (condition) { \
             operator = currentTokenType(compiler); \
             advance(compiler); \
-            next(compiler); \
+            next(compiler, 0); \
             emitBinary(compiler, operator); \
         } \
     }       
@@ -130,6 +130,7 @@ static int eat(Compiler* compiler, TokenType type) {
 static void eatError(Compiler* compiler, TokenType type, char* msg) {
     if (!eat(compiler, type)) {
         errorAtCurrent(compiler, msg);
+        advance(compiler);
     }
 }
 
@@ -156,7 +157,13 @@ static void emitGlobalDecl(Compiler* compiler, Token identifier) {
 static void emitGlobalGet(Compiler* compiler, Token identifier) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_GET_LONG, OP_GLOBAL_GET, name, compiler->current.line);
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_GET_LONG, OP_GLOBAL_GET, name, compiler->previous.line);
+}
+
+static void emitGlobalSet(Compiler* compiler, Token identifier) {
+    ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+    Value name = to_vobj(strname);
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_SET_LONG, OP_GLOBAL_SET, name, compiler->previous.line);
 }
 
 static void emitRet(Compiler* compiler) {
@@ -201,13 +208,18 @@ static void stringExpression(Compiler* compiler) {
     advance(compiler);
 }
 
-static void identifierExpression(Compiler* compiler) {
+static void identifierExpression(Compiler* compiler, int canAssign) {
     Token identifier = compiler->current;
-    emitGlobalGet(compiler, identifier);
-    advance(compiler); 
+    advance(compiler);
+    if (canAssign && eat(compiler, TOK_EQUAL)) {
+        expression(compiler);
+        emitGlobalSet(compiler, identifier);
+    } else {
+        emitGlobalGet(compiler, identifier);
+    }
 }
 
-static void basicExpression(Compiler* compiler) {
+static void basicExpression(Compiler* compiler, int canAssign) {
     switch (currentTokenType(compiler)) {
         case TOK_STRING:
             stringExpression(compiler);
@@ -228,7 +240,7 @@ static void basicExpression(Compiler* compiler) {
             advance(compiler);
             break;
         case TOK_IDENTIFIER:
-            identifierExpression(compiler);
+            identifierExpression(compiler, canAssign);
             break;
         default:
             errorAtCurrent(compiler, "unexpected token");
@@ -241,36 +253,36 @@ static void groupingExpression(Compiler* compiler) {
     eatError(compiler, TOK_RIGHT_ROUND_BRACKET, "missing ')' after grouping expression");
 }
 
-static void primaryExpression(Compiler* compiler) {
+static void primaryExpression(Compiler* compiler, int canAssign) {
     switch (currentTokenType(compiler)) {
         case TOK_LEFT_ROUND_BRACKET:
             groupingExpression(compiler);
             break;
         default:
-            basicExpression(compiler);
+            basicExpression(compiler, canAssign);
             break;
     }
 }
 
-static void unaryExpression(Compiler* compiler) {
+static void unaryExpression(Compiler* compiler, int canAssign) {
     TokenType operator;
     if (check(compiler, TOK_MINUS) || check(compiler, TOK_PLUS) || check(compiler, TOK_EXCLAMATION_MARK)) {
         operator = currentTokenType(compiler);
         advance(compiler);
-        unaryExpression(compiler);
+        unaryExpression(compiler, canAssign);
         emitUnary(compiler, operator);
     } else {
-        primaryExpression(compiler);
+        primaryExpression(compiler, canAssign);
     }
 }
 
-static void powExpression(Compiler* compiler) {
+static void powExpression(Compiler* compiler, int canAssign) {
     TokenType operator;
-    unaryExpression(compiler);
+    unaryExpression(compiler, canAssign);
     if (check(compiler, TOK_CIRCUMFLEX)) {
         operator = currentTokenType(compiler);
         advance(compiler);
-        powExpression(compiler);
+        powExpression(compiler, 0);
         emitBinary(compiler, operator);
     }
 }
@@ -289,7 +301,7 @@ standard_binary_expression(equalExpression, comparisonExpression,
         check(compiler, TOK_EQUAL_EQUAL) || check(compiler, TOK_NOT_EQUAL))
 
 static void nonCommaExpression(Compiler* compiler) {
-    equalExpression(compiler);
+    equalExpression(compiler, 1);
 }
 
 static void commaExpression(Compiler* compiler) {
