@@ -226,6 +226,13 @@ static int vmRun(VM* vm) {
                     vm->pc = oldpc + argument;
                     break;
                 }
+            case OP_JUMP_BACK:
+                {
+                    uint8_t* oldpc = vm->pc - 1;
+                    uint16_t argument = read_long();
+                    vm->pc = oldpc - argument;
+                    break;
+                }
             case OP_XOR:
                 {
                     Value b = peek(vm, 0);

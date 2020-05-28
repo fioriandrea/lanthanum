@@ -70,6 +70,7 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             print_argumented_long_instruction(OP_JUMP_IF_FALSE)
             print_argumented_long_instruction(OP_JUMP_IF_TRUE)
             print_argumented_long_instruction(OP_JUMP)
+            print_argumented_long_instruction(OP_JUMP_BACK)
             print_simple_instruction(OP_RET)
             print_simple_instruction(OP_XOR)
             print_simple_instruction(OP_NEGATE)

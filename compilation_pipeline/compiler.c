@@ -240,6 +240,17 @@ static int patchJump(Compiler* compiler, int address) {
     compilingChunk(compiler)->code[address + 2] = sl.b1;  
 }
 
+static void emitJumpBack(Compiler* compiler, int address) {
+    int offset = compilingChunk(compiler)->count - address;
+    if (offset > UINT16_MAX) {
+        errorAtCurrent(compiler, "loop body too big");
+    }
+    SplittedLong sl = split_long((uint16_t) offset);
+    emitByte(compiler, OP_JUMP_BACK);
+    emitByte(compiler, sl.b0);
+    emitByte(compiler, sl.b1);
+}
+
 static void emitBinary(Compiler* compiler, TokenType operator) {
     switch (operator) {
         case TOK_PLUS: emitByte(compiler, OP_ADD); break;
@@ -562,6 +573,18 @@ static void ifStat(Compiler* compiler) {
 }
 
 static void whileStat(Compiler* compiler) {
+    advance(compiler); // skip while
+    int jumpBackAddress = compilingChunk(compiler)->count; 
+    expression(compiler);
+    eatError(compiler, TOK_NEW_LINE, "expected new line after while condition");
+    int jumpwhile = emitJump(compiler, OP_JUMP_IF_FALSE);
+    emitByte(compiler, OP_POP);
+    if (!check(compiler, TOK_INDENT))
+        errorAtCurrent(compiler, "expect indent after while");
+    blockStat(compiler);
+    emitJumpBack(compiler, jumpBackAddress);
+    patchJump(compiler, jumpwhile); 
+    emitByte(compiler, OP_POP);
 }
 
 static void statement(Compiler* compiler) {
