@@ -203,6 +203,40 @@ static int vmRun(VM* vm) {
                     vm->stack[argument] = peek(vm, 0);
                     break;
                 }
+            case OP_JUMP_IF_FALSE:
+                {
+                    uint8_t* oldpc = vm->pc - 1;
+                    uint16_t argument = read_long();
+                    if (!isTruthy(peek(vm, 0)))
+                        vm->pc = oldpc + argument;
+                    break;
+                }
+            case OP_JUMP_IF_TRUE:
+                {
+                    uint8_t* oldpc = vm->pc - 1;
+                    uint16_t argument = read_long();
+                    if (isTruthy(peek(vm, 0)))
+                        vm->pc = oldpc + argument;
+                    break;
+                }
+            case OP_JUMP:
+                {
+                    uint8_t* oldpc = vm->pc - 1;
+                    uint16_t argument = read_long();
+                    vm->pc = oldpc + argument;
+                    break;
+                }
+            case OP_XOR:
+                {
+                    Value b = peek(vm, 0);
+                    Value a = peek(vm, 1);
+                    int bb = isTruthy(b);
+                    int ba = isTruthy(a);
+                    pop(vm);
+                    pop(vm);
+                    push(vm, to_vbool(!(ba == bb)));
+                    break;
+                }
             case OP_NEGATE:
                 {
                     if (!is_number(peek(vm, 0))) {

@@ -15,7 +15,7 @@ typedef struct sLocal Local;
 
 typedef struct {
     int depth;
-    Local locals[256];
+    Local locals[256]; // todo: change constant
     int count;
 } Scope;
 

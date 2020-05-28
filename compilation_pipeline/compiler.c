@@ -9,6 +9,8 @@
 #include "../debug/token_printer.h"
 #define TRACE_TOKENS 
 
+#define MAX_BRANCHES 200
+
 /*
    program -> statement* EOF
    statement -> print | let | if | while | func | ret | break | continue | expressionStat
@@ -64,7 +66,7 @@
 static void expression(Compiler* compiler);
 static void statement(Compiler* compiler);
 
-static Chunk* compilingChunk(Compiler* compiler) {
+static inline Chunk* compilingChunk(Compiler* compiler) {
     return compiler->compilingChunk;
 }
 
@@ -221,6 +223,23 @@ static void emitUnary(Compiler* compiler, TokenType operator) {
     }
 }
 
+static int emitJump(Compiler* compiler, OpCode opcode) {
+    emitByte(compiler, opcode);
+    emitByte(compiler, 0x00);
+    emitByte(compiler, 0x00);
+    return compilingChunk(compiler)->count - 3;
+}
+
+static int patchJump(Compiler* compiler, int address) {
+    int newarg = compilingChunk(compiler)->count - address;
+    if (newarg > UINT16_MAX) {                                    
+        errorAtCurrent(compiler, "branch too big");                     
+    } 
+    SplittedLong sl = split_long((uint16_t) newarg);
+    compilingChunk(compiler)->code[address + 1] = sl.b0;
+    compilingChunk(compiler)->code[address + 2] = sl.b1;  
+}
+
 static void emitBinary(Compiler* compiler, TokenType operator) {
     switch (operator) {
         case TOK_PLUS: emitByte(compiler, OP_ADD); break;
@@ -236,6 +255,7 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
         case TOK_GREATER: emitByte(compiler, OP_GREATER); break;
         case TOK_GREATER_EQUAL: emitByte(compiler, OP_GREATER_EQUAL); break;
         case TOK_PLUS_PLUS: emitByte(compiler, OP_CONCAT); break;
+        case TOK_XOR: emitByte(compiler, OP_XOR); break;
     }
 }
 
@@ -381,9 +401,52 @@ standard_binary_expression(comparisonExpression, addExpression,
 standard_binary_expression(equalExpression, comparisonExpression, 
         check(compiler, TOK_EQUAL_EQUAL) || check(compiler, TOK_NOT_EQUAL))
 
-    static void nonCommaExpression(Compiler* compiler) {
-        equalExpression(compiler, 1);
+    static void andExpression(Compiler* compiler, int canAssign) {
+        static int jumpAddresses[MAX_BRANCHES];
+        int jumpAddressesPointer = 0;
+
+        equalExpression(compiler, canAssign);
+        while (eat(compiler, TOK_AND)) {
+            jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP_IF_FALSE);
+            emitByte(compiler, OP_POP);
+            equalExpression(compiler, 0);
+        }
+
+        for (int i = 0; i < jumpAddressesPointer; i++)
+            patchJump(compiler, jumpAddresses[i]);
     }
+
+static void orExpression(Compiler* compiler, int canAssign) {
+    static int jumpAddresses[MAX_BRANCHES];
+    int jumpAddressesPointer = 0;
+    while (eat(compiler, TOK_OR)) {
+        jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP_IF_TRUE);
+        emitByte(compiler, OP_POP);
+        andExpression(compiler, 0);
+    }
+
+    for (int i = 0; i < jumpAddressesPointer; i++)
+        patchJump(compiler, jumpAddresses[i]);
+}
+
+static void logicalSumExpression(Compiler* compiler, int canAssign) {
+    TokenType operator;
+    andExpression(compiler, canAssign);
+    while (check(compiler, TOK_OR) || check(compiler, TOK_XOR)) {
+        operator = currentTokenType(compiler);
+        if (operator == TOK_XOR) {
+            advance(compiler);
+            andExpression(compiler, 0);
+            emitBinary(compiler, TOK_XOR);
+        } else {
+            orExpression(compiler, 0);
+        }
+    }
+}
+
+static void nonCommaExpression(Compiler* compiler) {
+    logicalSumExpression(compiler, 1);
+}
 
 static void commaExpression(Compiler* compiler) {
     nonCommaExpression(compiler);
@@ -436,7 +499,6 @@ static void block(Compiler* compiler) {
         statement(compiler);
     }
     eatError(compiler, TOK_DEDENT, "missing dedent to close block");
-    //eatError(compiler, TOK_NEW_LINE, "expect new line after dedent");
 }
 
 static void startScope(Compiler* compiler) {
@@ -454,10 +516,52 @@ static void endScope(Compiler* compiler) {
 
 static void blockStat(Compiler* compiler) {
     advance(compiler);
-    //eatError(compiler, TOK_NEW_LINE, "expect new line after indent");
     startScope(compiler);
     block(compiler);
     endScope(compiler);
+}
+
+static void ifStat(Compiler* compiler) {
+    static int jumpAddresses[MAX_BRANCHES];
+    int jumpAddressesPointer = 0;
+
+    advance(compiler); // skip if
+    expression(compiler);
+    eatError(compiler, TOK_NEW_LINE, "expected new line after if condition");
+    int jumpif = emitJump(compiler, OP_JUMP_IF_FALSE);
+    emitByte(compiler, OP_POP);
+    if (!check(compiler, TOK_INDENT))
+        errorAtCurrent(compiler, "expect indent after if");
+    blockStat(compiler);
+    jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP);
+    patchJump(compiler, jumpif); 
+    emitByte(compiler, OP_POP);
+
+    while (eat(compiler, TOK_ELIF)) {
+        expression(compiler);
+        eatError(compiler, TOK_NEW_LINE, "expected new line after elif condition");
+        int jumpelif = emitJump(compiler, OP_JUMP_IF_FALSE);
+        emitByte(compiler, OP_POP);
+        if (!check(compiler, TOK_INDENT))
+            errorAtCurrent(compiler, "expect indent after elif");
+        blockStat(compiler);
+        jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP);
+        patchJump(compiler, jumpelif); 
+        emitByte(compiler, OP_POP);
+    }
+
+    if (eat(compiler, TOK_ELSE)) {
+        eatError(compiler, TOK_NEW_LINE, "expected new line after else");
+        if (!check(compiler, TOK_INDENT))
+            errorAtCurrent(compiler, "expect indent after else");
+        blockStat(compiler);
+    }
+
+    for (int i = 0; i < jumpAddressesPointer; i++)
+        patchJump(compiler, jumpAddresses[i]);
+}
+
+static void whileStat(Compiler* compiler) {
 }
 
 static void statement(Compiler* compiler) {
@@ -470,6 +574,12 @@ static void statement(Compiler* compiler) {
             break;
         case TOK_INDENT:
             blockStat(compiler);
+            break;
+        case TOK_IF:
+            ifStat(compiler);
+            break;
+        case TOK_WHILE:
+            whileStat(compiler);
             break;
         default:
             expressionStat(compiler);
