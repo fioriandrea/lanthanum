@@ -413,7 +413,7 @@ standard_binary_expression(equalExpression, comparisonExpression,
         check(compiler, TOK_EQUAL_EQUAL) || check(compiler, TOK_NOT_EQUAL))
 
     static void andExpression(Compiler* compiler, int canAssign) {
-        static int jumpAddresses[MAX_BRANCHES];
+        int jumpAddresses[MAX_BRANCHES];
         int jumpAddressesPointer = 0;
 
         equalExpression(compiler, canAssign);
@@ -428,7 +428,7 @@ standard_binary_expression(equalExpression, comparisonExpression,
     }
 
 static void orExpression(Compiler* compiler, int canAssign) {
-    static int jumpAddresses[MAX_BRANCHES];
+    int jumpAddresses[MAX_BRANCHES];
     int jumpAddressesPointer = 0;
     while (eat(compiler, TOK_OR)) {
         jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP_IF_TRUE);
@@ -481,7 +481,6 @@ static void printStat(Compiler* compiler) {
     advance(compiler); // skip 'print'
     expression(compiler);
     emitByte(compiler, OP_PRINT);
-    emitByte(compiler, OP_POP);
     eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
 }
 
@@ -533,7 +532,7 @@ static void blockStat(Compiler* compiler) {
 }
 
 static void ifStat(Compiler* compiler) {
-    static int jumpAddresses[MAX_BRANCHES];
+    int jumpAddresses[MAX_BRANCHES];
     int jumpAddressesPointer = 0;
 
     advance(compiler); // skip if

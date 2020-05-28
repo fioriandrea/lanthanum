@@ -391,6 +391,7 @@ static int vmRun(VM* vm) {
                     Value val = peek(vm, 0);
                     printValue(val);
                     printf("\n");
+                    pop(vm);
                     break;
                 }
             default:
