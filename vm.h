@@ -6,11 +6,19 @@
 #include "./datastructs/value.h"
 #include "./datastructs/hash_map.h"
 
-#define MAX_STACK 256
+#define MAX_FRAMES 64                       
+#define MAX_STACK (MAX_FRAMES * UINT8_MAX)
 
 typedef struct {
     ObjFunction* function;
     uint8_t* pc;
+    Value* localStack;
+} CallFrame;
+
+typedef struct {
+    ObjFunction* function;
+    CallFrame frames[MAX_FRAMES];
+    int fp;
     Value stack[MAX_STACK];
     Value* sp;
     Collector* collector;

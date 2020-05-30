@@ -23,7 +23,7 @@ static void resetStack(VM* vm) {
 }
 
 void initVM(VM* vm) {
-    vm->pc = NULL;
+    vm->fp = 0;
     resetStack(vm);
     initMap(&vm->globals);
 }
@@ -43,8 +43,8 @@ static Value pop(VM* vm) {
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
-    int instruction = vm->pc - vm->function->chunk->code - 1; 
-    int line = lineArrayGet(&vm->function->chunk->lines, instruction);         
+    int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].function->chunk->code - 1; 
+    int line = lineArrayGet(&vm->frames[vm->fp - 1].function->chunk->lines, instruction);         
 
     va_list args;                                    
     va_start(args, format);                          
@@ -56,10 +56,11 @@ static void runtimeError(VM* vm, char* format, ...) {
 }    
 
 static int vmRun(VM* vm) {
-#define read_byte() (*(vm->pc++))
+    CallFrame* currentFrame = &vm->frames[0];
+#define read_byte() (*(currentFrame->pc++))
 #define read_long() join_bytes(read_byte(), read_byte())
-#define read_constant() (vm->function->chunk->constants.values[read_byte()])
-#define read_constant_long() (vm->function->chunk->constants.values[read_long()])
+#define read_constant() (currentFrame->function->chunk->constants.values[read_byte()])
+#define read_constant_long() (currentFrame->function->chunk->constants.values[read_long()])
 #define binary_op(operator, destination) \
     do { \
         if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
@@ -74,10 +75,10 @@ static int vmRun(VM* vm) {
 
 #ifdef PRINT_CODE
     printf("VM CODE:\n");
-    printChunk(vm->function->chunk, "code");
+    printChunk(currentFrame->function->chunk, "code");
     // printf("\n");
-    // for (int i = 0; i < vm->function->chunk->lines.count; i++) {
-    //     printf("{l: %d, c: %d}\n", vm->function->chunk->lines.lines[i].line, vm->function->chunk->lines.lines[i].count);
+    // for (int i = 0; i < currentFrame->function->chunk->lines.count; i++) {
+    //     printf("{l: %d, c: %d}\n", currentFrame->function->chunk->lines.lines[i].line, currentFrame->function->chunk->lines.lines[i].count);
     // }
     printf("\n");
 #endif
@@ -89,7 +90,7 @@ static int vmRun(VM* vm) {
     for (;;) {
 #ifdef TRACE_EXEC
         printf("\n");
-        printInstruction(vm->function->chunk, *vm->pc, (int) (vm->pc - vm->function->chunk->code));
+        printInstruction(currentFrame->function->chunk, *currentFrame->pc, (int) (currentFrame->pc - currentFrame->function->chunk->code));
         printf("stack: [");
         for (Value* start = vm->stack; start < vm->sp; start++) {
             printValue(*start);
@@ -183,55 +184,55 @@ static int vmRun(VM* vm) {
             case OP_LOCAL_GET:
                 {
                     uint8_t argument = read_byte();
-                    push(vm, vm->stack[argument]);
+                    push(vm, currentFrame->localStack[argument]);
                     break;
                 }
             case OP_LOCAL_GET_LONG:
                 {
                     uint16_t argument = read_long();
-                    push(vm, vm->stack[argument]);
+                    push(vm, currentFrame->localStack[argument]);
                     break;
                 }
             case OP_LOCAL_SET:
                 {
                     uint8_t argument = read_byte();
-                    vm->stack[argument] = peek(vm, 0);
+                    currentFrame->localStack[argument] = peek(vm, 0);
                     break;
                 }
             case OP_LOCAL_SET_LONG:
                 {
                     uint8_t argument = read_long();
-                    vm->stack[argument] = peek(vm, 0);
+                    currentFrame->localStack[argument] = peek(vm, 0);
                     break;
                 }
             case OP_JUMP_IF_FALSE:
                 {
-                    uint8_t* oldpc = vm->pc - 1;
+                    uint8_t* oldpc = currentFrame->pc - 1;
                     uint16_t argument = read_long();
                     if (!isTruthy(peek(vm, 0)))
-                        vm->pc = oldpc + argument;
+                        currentFrame->pc = oldpc + argument;
                     break;
                 }
             case OP_JUMP_IF_TRUE:
                 {
-                    uint8_t* oldpc = vm->pc - 1;
+                    uint8_t* oldpc = currentFrame->pc - 1;
                     uint16_t argument = read_long();
                     if (isTruthy(peek(vm, 0)))
-                        vm->pc = oldpc + argument;
+                        currentFrame->pc = oldpc + argument;
                     break;
                 }
             case OP_JUMP:
                 {
-                    uint8_t* oldpc = vm->pc - 1;
+                    uint8_t* oldpc = currentFrame->pc - 1;
                     uint16_t argument = read_long();
-                    vm->pc = oldpc + argument;
+                    currentFrame->pc = oldpc + argument;
                     break;
                 }
             case OP_JUMP_BACK:
                 {
-                    uint8_t* oldpc = vm->pc - 1;
+                    uint8_t* oldpc = currentFrame->pc - 1;
                     uint16_t argument = read_long();
-                    vm->pc = oldpc - argument;
+                    currentFrame->pc = oldpc - argument;
                     break;
                 }
             case OP_XOR:
@@ -410,8 +411,11 @@ static int vmRun(VM* vm) {
 
 int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     initVM(vm);
-    vm->function = function;
-    vm->pc = vm->function->chunk->code;
+    CallFrame* initialFrame = &vm->frames[0];
+    initialFrame->function = function;
+    initialFrame->pc = function->chunk->code;
+    initialFrame->localStack = vm->stack;
+
     vm->collector = collector;
     int result = vmRun(vm);
     freeVM(vm);
