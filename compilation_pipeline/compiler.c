@@ -1,9 +1,11 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "compiler.h"
 #include "../datastructs/chunk.h"
 #include "../datastructs/value.h"
+#include "../util.h"
 #include "../datastructs/object.h"
 
 #include "../debug/token_printer.h"
@@ -67,7 +69,7 @@ static void expression(Compiler* compiler);
 static void statement(Compiler* compiler);
 
 static inline Chunk* compilingChunk(Compiler* compiler) {
-    return compiler->compilingChunk;
+    return compiler->compilingFunction->chunk;
 }
 
 static void error(Compiler* compiler, Token tok, char* message) {
@@ -615,17 +617,17 @@ static void statementList(Compiler* compiler) {
     }
 }
 
-int compile(Compiler* compiler, Collector* collector, Chunk* chunk, char* source) {
+ObjFunction* compile(Compiler* compiler, Collector* collector, char* source) {
     initCompiler(compiler);
     initLexer(&compiler->lexer, source);
     compiler->collector = collector;
-    compiler->compilingChunk = chunk;
+    compiler->compilingFunction = newFunction(collector);
 
     advance(compiler);
     statementList(compiler);
     emitRet(compiler);
     freeLexer(&compiler->lexer);
-    return !compiler->hadError;
+    return !compiler->hadError ? compiler->compilingFunction : NULL;
 }
 
 void freeCompiler(Compiler* compiler) {

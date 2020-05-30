@@ -40,14 +40,14 @@ static char* readFile(const char* path) {
     return buffer;
 }
 
-static void runFile(const char* fname, VM* vm, Compiler* compiler, Collector* collector, Chunk* chunk) {
+static void runFile(const char* fname, VM* vm, Compiler* compiler, Collector* collector) {
     char* source = readFile(fname);
-    int compilerResult = compile(compiler, collector, chunk, source);
-    if (!compilerResult) { // compile error
+    ObjFunction* function = compile(compiler, collector, source);
+    if (function == NULL) { // compile error
         exit(1);
     }
-    int runtimeResult = vmExecute(vm, collector, chunk);
-    if (!runtimeResult) { // compile error
+    int runtimeResult = vmExecute(vm, collector, function);
+    if (!runtimeResult) { // runtime error
         exit(1); 
     }
 }
@@ -61,9 +61,7 @@ int main(int argc, char **argv) {
     initCollector(&collector);
     VM vm;
     Compiler compiler;
-    Chunk chunk;
-    initChunk(&chunk);
 
-    runFile(argv[1], &vm, &compiler, &collector, &chunk);
+    runFile(argv[1], &vm, &compiler, &collector);
     return 0;
 }

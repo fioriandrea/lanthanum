@@ -4,6 +4,7 @@
 #include "object.h"
 #include "../util.h"
 #include "../memory.h"
+#include "chunk.h"
 
 #define allocate_obj(collector, type, typeenum) \
     ((type*) allocateObj(collector, typeenum, sizeof(type)))
@@ -42,6 +43,15 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
     return string;
 }
 
+ObjFunction* newFunction(Collector* collector) {
+    ObjFunction* function = allocate_obj(collector, ObjFunction, OBJ_FUNCTION);
+    function->name = NULL;
+    function->arity = 0;
+    function->chunk = allocate_pointer(collector, Chunk, sizeof(Chunk));
+    initChunk(function->chunk);
+    return function;
+}
+
 void freeObject(Collector* collector, Obj* object) {
     switch (object->type) {                                 
         case OBJ_STRING: 
@@ -50,7 +60,14 @@ void freeObject(Collector* collector, Obj* object) {
                 free_array(collector, char, string->chars, string->length + 1);
                 free_pointer(collector, object, sizeof(ObjString));                            
                 break;                                              
-            }                                                     
+            }       
+        case OBJ_FUNCTION:
+            {
+                ObjFunction* function = (ObjFunction*) object;
+                free_pointer(collector, function->chunk, sizeof(Chunk));
+                free_pointer(collector, function, sizeof(ObjFunction));
+                break;
+            }            
     }
 }
 
@@ -59,5 +76,14 @@ void printObj(Obj* obj) {
         case OBJ_STRING:
             printf("%s", ((ObjString*) obj)->chars);
             break;
+        case OBJ_FUNCTION:
+            {
+                ObjFunction* function = (ObjFunction*) obj;
+                if (function->name == NULL)
+                    printf("<main script>");
+                else
+                    printf("<%s function>", function->name->chars);
+                break;
+            }
     }
 }

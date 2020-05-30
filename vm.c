@@ -7,6 +7,7 @@
 #include "./debug/asm_printer.h"
 #include "./debug/map_printer.h"
 #include "memory.h"
+#include "util.h"
 #include "./datastructs/value.h"
 #include "./compilation_pipeline/compiler.h"
 
@@ -42,8 +43,8 @@ static Value pop(VM* vm) {
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
-    int instruction = vm->pc - vm->chunk->code - 1; 
-    int line = lineArrayGet(&vm->chunk->lines, instruction);         
+    int instruction = vm->pc - vm->function->chunk->code - 1; 
+    int line = lineArrayGet(&vm->function->chunk->lines, instruction);         
 
     va_list args;                                    
     va_start(args, format);                          
@@ -57,8 +58,8 @@ static void runtimeError(VM* vm, char* format, ...) {
 static int vmRun(VM* vm) {
 #define read_byte() (*(vm->pc++))
 #define read_long() join_bytes(read_byte(), read_byte())
-#define read_constant() (vm->chunk->constants.values[read_byte()])
-#define read_constant_long() (vm->chunk->constants.values[read_long()])
+#define read_constant() (vm->function->chunk->constants.values[read_byte()])
+#define read_constant_long() (vm->function->chunk->constants.values[read_long()])
 #define binary_op(operator, destination) \
     do { \
         if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
@@ -73,10 +74,10 @@ static int vmRun(VM* vm) {
 
 #ifdef PRINT_CODE
     printf("VM CODE:\n");
-    printChunk(vm->chunk, "code");
+    printChunk(vm->function->chunk, "code");
     // printf("\n");
-    // for (int i = 0; i < vm->chunk->lines.count; i++) {
-    //     printf("{l: %d, c: %d}\n", vm->chunk->lines.lines[i].line, vm->chunk->lines.lines[i].count);
+    // for (int i = 0; i < vm->function->chunk->lines.count; i++) {
+    //     printf("{l: %d, c: %d}\n", vm->function->chunk->lines.lines[i].line, vm->function->chunk->lines.lines[i].count);
     // }
     printf("\n");
 #endif
@@ -88,7 +89,7 @@ static int vmRun(VM* vm) {
     for (;;) {
 #ifdef TRACE_EXEC
         printf("\n");
-        printInstruction(vm->chunk, *vm->pc, (int) (vm->pc - vm->chunk->code));
+        printInstruction(vm->function->chunk, *vm->pc, (int) (vm->pc - vm->function->chunk->code));
         printf("stack: [");
         for (Value* start = vm->stack; start < vm->sp; start++) {
             printValue(*start);
@@ -407,10 +408,10 @@ static int vmRun(VM* vm) {
 #undef read_constant_long
 }
 
-int vmExecute(VM* vm, Collector* collector, Chunk* chunk) {
+int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     initVM(vm);
-    vm->chunk = chunk;
-    vm->pc = vm->chunk->code;
+    vm->function = function;
+    vm->pc = vm->function->chunk->code;
     vm->collector = collector;
     int result = vmRun(vm);
     freeVM(vm);
@@ -429,6 +430,5 @@ void freeVM(VM* vm) {
     printf("\n");
 #endif
     freeCollector(vm->collector);
-    freeChunk(NULL, vm->chunk);
     freeMap(NULL, &vm->globals);
 }

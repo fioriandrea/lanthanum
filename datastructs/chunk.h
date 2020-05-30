@@ -4,7 +4,6 @@
 #include "../commontypes.h"
 #include "value.h"
 #include "line_array.h"
-#include "../util.h"
 
 typedef enum {
     OP_RET,
@@ -47,18 +46,18 @@ typedef enum {
     OP_XOR,
 } OpCode;
 
-typedef struct {
+struct sChunk {
     int count;
     int capacity;
     uint8_t* code;
     ValueArray constants;
     LineArray lines;
-} Chunk;
+};
 
-void initChunk(Chunk* chunk);
-int writeChunk(Collector* collector, Chunk* chunk, uint8_t byte, int line);
-void freeChunk(Collector* collector, Chunk* chunk);
-int writeVariableSizeOp(Collector* collector, Chunk* chunk, OpCode oplong, OpCode opshort, uint16_t argument, int line);
-int writeAddressableInstruction(Collector* collector, Chunk* chunk, OpCode oplong, OpCode opshort, Value val, int line);
+void initChunk(struct sChunk* chunk);
+int writeChunk(Collector* collector, struct sChunk* chunk, uint8_t byte, int line);
+void freeChunk(Collector* collector, struct sChunk* chunk);
+int writeVariableSizeOp(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, uint16_t argument, int line);
+int writeAddressableInstruction(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, Value val, int line);
 
 #endif

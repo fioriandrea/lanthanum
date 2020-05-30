@@ -9,7 +9,7 @@
 #define MAX_STACK 256
 
 typedef struct {
-    Chunk* chunk;
+    ObjFunction* function;
     uint8_t* pc;
     Value stack[MAX_STACK];
     Value* sp;
@@ -18,7 +18,7 @@ typedef struct {
 } VM;
 
 void initVM(VM* vm);
-int vmExecute(VM* vm, Collector* collector, Chunk* chunk);  
+int vmExecute(VM* vm, Collector* collector, ObjFunction* function);  
 void freeVM(VM* vm);
 
 #endif

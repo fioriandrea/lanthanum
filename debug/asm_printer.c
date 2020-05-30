@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "asm_printer.h"
+#include "../util.h"
 #include "../commontypes.h"
 #include "../datastructs/value.h"
 #include "../datastructs/object.h"

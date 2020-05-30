@@ -24,14 +24,14 @@ typedef struct {
     Token current;
     Token previous;
     Collector* collector;
-    Chunk* compilingChunk;
+    ObjFunction* compilingFunction;
     int hadError;
     int panic;
     Scope scope;
 } Compiler;
 
 void initCompiler(Compiler* compiler);
-int compile(Compiler* compiler, Collector* collector, Chunk* chunk, char* source);
+ObjFunction* compile(Compiler* compiler, Collector* collector, char* source);
 void freeCompiler(Compiler* compiler);
 
 #endif

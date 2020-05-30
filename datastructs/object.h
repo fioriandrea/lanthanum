@@ -5,6 +5,7 @@
 
 typedef enum {
     OBJ_STRING,
+    OBJ_FUNCTION,
 } ObjType;
 
 struct sObj {
@@ -21,8 +22,16 @@ typedef struct {
     char* chars;
 } ObjString;
 
+typedef struct {
+    Obj obj;
+    int arity;
+    ObjString* name;
+    Chunk* chunk;
+} ObjFunction;
+
 ObjString* copyString(Collector* collector, char* chars, int length);
 ObjString* takeString(Collector* collector, char* chars, int length);
+ObjFunction* newFunction(Collector* collector);
 void freeObject(Collector* collector, Obj* object);
 void printObj(Obj* obj);
 

@@ -5,5 +5,6 @@
 #include <stdint.h>
 #include <stddef.h>
 typedef struct sCollector Collector;
+typedef struct sChunk Chunk;
 
 #endif
