@@ -270,11 +270,12 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
     }
 }
 
-static void pushScope(Compiler* compiler, Scope* scope) {
+static void pushScope(Compiler* compiler, Scope* scope, ObjString* name) {
     scope->enclosing = compiler->scope;
     scope->depth = 0;
     scope->count = 0;
     scope->function = newFunction(compiler->collector);
+    scope->function->name = name;
     compiler->scope = scope;
 }
 
@@ -486,6 +487,33 @@ static void expression(Compiler* compiler) {
     return commaExpression(compiler); 
 }
 
+static void block(Compiler* compiler) {
+    while (currentTokenType(compiler) != TOK_EOF && currentTokenType(compiler) != TOK_DEDENT) {
+        statement(compiler);
+    }
+    eatError(compiler, TOK_DEDENT, "missing dedent to close block");
+}
+
+static void startScope(Compiler* compiler) {
+    compiler->scope->depth++;
+}
+
+static void endScope(Compiler* compiler) {
+    Scope* scope = compiler->scope;
+    while (scope->count > 0 && scope->locals[scope->count - 1].depth == scope->depth) {
+        emitByte(compiler, OP_POP);
+        scope->count--;
+    }
+    compiler->scope->depth--;
+}
+
+static void blockStat(Compiler* compiler) {
+    advance(compiler);
+    startScope(compiler);
+    block(compiler);
+    endScope(compiler);
+}
+
 static void expressionStat(Compiler* compiler) {
     expression(compiler);
     emitByte(compiler, OP_POP);
@@ -519,31 +547,32 @@ static void letStat(Compiler* compiler) {
     eatError(compiler, TOK_NEW_LINE, "expected new line at end of statement");
 }
 
-static void block(Compiler* compiler) {
-    while (currentTokenType(compiler) != TOK_EOF && currentTokenType(compiler) != TOK_DEDENT) {
-        statement(compiler);
+static void parseFunctionDeclaration(Compiler* compiler, Token name) {
+    Scope scope;
+    pushScope(compiler, &scope, copyString(compiler->collector, name.start, name.length));
+    eatError(compiler, TOK_LEFT_ROUND_BRACKET, "expected \"(\" before function parameters");
+    eatError(compiler, TOK_RIGHT_ROUND_BRACKET, "expected \")\" after function parameters");
+    eatError(compiler, TOK_NEW_LINE, "expected new line after function parameters");
+    if (!check(compiler, TOK_INDENT))
+        errorAtCurrent(compiler, "expected indent after function parameters");
+    blockStat(compiler);
+    ObjFunction* function = popScope(compiler);
+    emitConstant(compiler, to_vobj(function));
+}
+
+static void funcStat(Compiler* compiler) {
+    advance(compiler); // skip 'func'
+    eatError(compiler, TOK_IDENTIFIER, "expected function name after \"func\"");
+    Token identifier = compiler->previous;
+
+    if (compiler->scope->depth > 0) {
+        declareLocal(compiler, identifier);
+        defineLocal(compiler, identifier);
     }
-    eatError(compiler, TOK_DEDENT, "missing dedent to close block");
-}
-
-static void startScope(Compiler* compiler) {
-    compiler->scope->depth++;
-}
-
-static void endScope(Compiler* compiler) {
-    Scope* scope = compiler->scope;
-    while (scope->count > 0 && scope->locals[scope->count - 1].depth == scope->depth) {
-        emitByte(compiler, OP_POP);
-        scope->count--;
-    }
-    compiler->scope->depth--;
-}
-
-static void blockStat(Compiler* compiler) {
-    advance(compiler);
-    startScope(compiler);
-    block(compiler);
-    endScope(compiler);
+    parseFunctionDeclaration(compiler, identifier);
+    if (compiler->scope->depth == 0) {
+        emitGlobalDecl(compiler, identifier);
+    } 
 }
 
 static void ifStat(Compiler* compiler) {
@@ -617,6 +646,9 @@ static void statement(Compiler* compiler) {
             break;
         case TOK_WHILE:
             whileStat(compiler);
+            break;
+        case TOK_FUNC:
+            funcStat(compiler);
             break;
         default:
             expressionStat(compiler);
