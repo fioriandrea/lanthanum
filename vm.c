@@ -95,7 +95,7 @@ static int vmRun(VM* vm) {
                     vm->fp--;
                     if (vm->fp == 0)
                         return RUNTIME_OK;
-                    vm->sp = currentFrame->localStack;
+                    vm->sp = currentFrame->localStack - 1; // -1 to skip function sitting in stack
                     currentFrame = &vm->frames[vm->fp - 1];
                     push(vm, retVal);
                     break;
