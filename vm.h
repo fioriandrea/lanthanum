@@ -6,7 +6,7 @@
 #include "./datastructs/value.h"
 #include "./datastructs/hash_map.h"
 
-#define MAX_FRAMES 64                       
+#define MAX_FRAMES 256                       
 #define MAX_STACK (MAX_FRAMES * UINT8_MAX)
 
 typedef struct {

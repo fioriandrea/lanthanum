@@ -35,7 +35,9 @@ typedef struct {
 #define to_vobj(object) ((Value) {VALUE_OBJ, {.obj = ((Obj*) object)}})
 
 #define is_string(value) isObjType(value, OBJ_STRING)
+#define is_function(value) isObjType(value, OBJ_FUNCTION)
 
+#define as_function(value) ((ObjFunction*) as_obj(value))
 #define as_string(value) ((ObjString*) as_obj(value))
 #define as_cstring(value) (as_string(value)->chars)
 

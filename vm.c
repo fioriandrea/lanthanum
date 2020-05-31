@@ -11,9 +11,9 @@
 #include "./datastructs/value.h"
 #include "./compilation_pipeline/compiler.h"
 
-#define TRACE_EXEC
+/*#define TRACE_EXEC
 #define TRACE_INTERNED
-#define TRACE_GLOBALS
+#define TRACE_GLOBALS*/
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1
 
@@ -25,20 +25,6 @@ void initVM(VM* vm) {
     vm->fp = 0;
     resetStack(vm);
     initMap(&vm->globals);
-}
-
-static Value peek(VM* vm, int depth) {
-    return vm->sp[-(depth + 1)];
-}
-
-static void push(VM* vm, Value val) {
-    *vm->sp = val;
-    vm->sp++;
-}
-
-static Value pop(VM* vm) {
-    vm->sp--;
-    return *vm->sp;
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
@@ -54,7 +40,22 @@ static void runtimeError(VM* vm, char* format, ...) {
     resetStack(vm);                                    
 }    
 
+static Value peek(VM* vm, int depth) {
+    return vm->sp[-(depth + 1)];
+}
+
+static void push(VM* vm, Value val) {
+    *vm->sp = val;
+    vm->sp++;
+}
+
+static Value pop(VM* vm) {
+    vm->sp--;
+    return *vm->sp;
+}
+
 static int vmRun(VM* vm) {
+    vm->fp = 1;
     CallFrame* currentFrame = &vm->frames[0];
 #define read_byte() (*(currentFrame->pc++))
 #define read_long() join_bytes(read_byte(), read_byte())
@@ -90,7 +91,40 @@ static int vmRun(VM* vm) {
         switch (read_byte()) {
             case OP_RET: 
                 {
-                    return RUNTIME_OK;
+                    Value retVal = pop(vm);
+                    vm->fp--;
+                    if (vm->fp == 0)
+                        return RUNTIME_OK;
+                    vm->sp = currentFrame->localStack;
+                    currentFrame = &vm->frames[vm->fp - 1];
+                    push(vm, retVal);
+                    break;
+                }
+            case OP_CALL:
+                {
+                    uint8_t argCount = read_byte();
+                    if (argCount > (vm->sp - vm->stack)) {
+                        runtimeError(vm, "too many function arguments");
+                        return RUNTIME_ERROR;
+                    }
+                    Value functionValue = peek(vm, argCount);
+                    if (!is_function(functionValue)) {
+                        runtimeError(vm, "can only call functions");
+                        return RUNTIME_ERROR;
+                    }
+                    ObjFunction* function = as_function(functionValue);
+                    if (argCount != function->arity) {
+                        runtimeError(vm, "expected %d arguments, got %d", function->arity, argCount);
+                        return RUNTIME_ERROR;
+                    }
+                    if (vm->fp + 1 >= MAX_FRAMES) {             
+                        runtimeError(vm, "stack overflow");             
+                        return RUNTIME_ERROR;                                
+                    } 
+                    currentFrame = &vm->frames[vm->fp++];
+                    currentFrame->function = function;
+                    currentFrame->pc = currentFrame->function->chunk->code;
+                    currentFrame->localStack = vm->sp - argCount;
                     break;
                 }
             case OP_CONST: 

@@ -215,6 +215,7 @@ static void emitLocalSet(Compiler* compiler, Token identifier) {
 }
 
 static void emitRet(Compiler* compiler) {
+    emitByte(compiler, OP_CONST_NIHL);
     emitByte(compiler, OP_RET);
 }
 
@@ -409,6 +410,9 @@ static uint8_t argList(Compiler* compiler) {
         } while (eat(compiler, TOK_COMMA));
     }
     eatError(compiler, TOK_RIGHT_ROUND_BRACKET, "expect \")\" after function arguments");
+    if (argCount >= UINT8_MAX) {                          
+        errorAtCurrent(compiler, "function arguments limit exceeded");
+    }  
     return argCount;
 }
 
@@ -673,6 +677,20 @@ static void whileStat(Compiler* compiler) {
     emitByte(compiler, OP_POP);
 }
 
+static void retStat(Compiler* compiler) {
+    advance(compiler);
+    if (check(compiler, TOK_NEW_LINE) || check(compiler, TOK_EOF)) {
+        emitRet(compiler);
+    } else {
+        expression(compiler);
+        emitByte(compiler, OP_RET);
+    }
+    if (!check(compiler, TOK_NEW_LINE) && !check(compiler, TOK_EOF))
+        errorAtCurrent(compiler, "unexpected token after ret statement");
+    else
+        advance(compiler);
+}
+
 static void statement(Compiler* compiler) {
     switch (currentTokenType(compiler)) {
         case TOK_LET:
@@ -692,6 +710,9 @@ static void statement(Compiler* compiler) {
             break;
         case TOK_FUNC:
             funcStat(compiler);
+            break;
+        case TOK_RET:
+            retStat(compiler);
             break;
         default:
             expressionStat(compiler);
