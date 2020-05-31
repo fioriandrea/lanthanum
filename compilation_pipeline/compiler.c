@@ -550,12 +550,25 @@ static void letStat(Compiler* compiler) {
 static void parseFunctionDeclaration(Compiler* compiler, Token name) {
     Scope scope;
     pushScope(compiler, &scope, copyString(compiler->collector, name.start, name.length));
+    startScope(compiler);
     eatError(compiler, TOK_LEFT_ROUND_BRACKET, "expected \"(\" before function parameters");
+    if (!check(compiler, TOK_RIGHT_ROUND_BRACKET)) {
+        do {
+            compiler->scope->function->arity++;
+            if (compiler->scope->function->arity >= UINT8_MAX)
+                errorAtCurrent(compiler, "maximum number of function parameters exceeded");
+            eatError(compiler, TOK_IDENTIFIER, "expected identifier inside function's \"()\"");
+            Token identifier = compiler->previous;
+            declareLocal(compiler, identifier);
+            defineLocal(compiler, identifier);
+        } while (eat(compiler, TOK_COMMA));
+    }
     eatError(compiler, TOK_RIGHT_ROUND_BRACKET, "expected \")\" after function parameters");
     eatError(compiler, TOK_NEW_LINE, "expected new line after function parameters");
     if (!check(compiler, TOK_INDENT))
         errorAtCurrent(compiler, "expected indent after function parameters");
-    blockStat(compiler);
+    advance(compiler);
+    block(compiler);
     ObjFunction* function = popScope(compiler);
     emitConstant(compiler, to_vobj(function));
 }
