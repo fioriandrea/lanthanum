@@ -69,7 +69,7 @@ static void expression(Compiler* compiler);
 static void statement(Compiler* compiler);
 
 static inline Chunk* compilingChunk(Compiler* compiler) {
-    return compiler->scope.function->chunk;
+    return compiler->scope->function->chunk;
 }
 
 static void error(Compiler* compiler, Token tok, char* message) {
@@ -177,8 +177,8 @@ static int identifiersEqual(Token id1, Token id2) {
 }
 
 static int indexLocal(Compiler* compiler, Token identifier) {
-    for (int i = compiler->scope.count - 1; i >= 0; i--) {   
-        Local* local = &compiler->scope.locals[i];                  
+    for (int i = compiler->scope->count - 1; i >= 0; i--) {   
+        Local* local = &compiler->scope->locals[i];                  
         if (identifiersEqual(identifier, local->name)) {           
             return i;                                           
         }                                                     
@@ -191,7 +191,7 @@ static void emitLocalGet(Compiler* compiler, Token identifier) {
     if (index < 0) {
         emitGlobalGet(compiler, identifier);
     } else {
-        if (compiler->scope.locals[index].depth < 0) { 
+        if (compiler->scope->locals[index].depth < 0) { 
             errorAtCurrent(compiler, "cannot read local variable in its own initializer");
         }
         ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
@@ -271,15 +271,18 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
 }
 
 static void pushScope(Compiler* compiler, Scope* scope) {
+    scope->enclosing = compiler->scope;
     scope->depth = 0;
     scope->count = 0;
     scope->function = newFunction(compiler->collector);
-    compiler->scope = *scope;
+    compiler->scope = scope;
 }
 
 static ObjFunction* popScope(Compiler* compiler) {
     emitRet(compiler);
-    return compiler->scope.function;
+    ObjFunction* function = compiler->scope->function;
+    compiler->scope = compiler->scope->enclosing;
+    return function;
 }
 
 static int alreadyDeclaredLocal(Scope* scope, Token identifier) {
@@ -293,7 +296,7 @@ static int alreadyDeclaredLocal(Scope* scope, Token identifier) {
 }
 
 static void declareLocal(Compiler* compiler, Token identifier) {
-    Scope* scope = &compiler->scope;
+    Scope* scope = compiler->scope;
     if (alreadyDeclaredLocal(scope, identifier)) {
         errorAtCurrent(compiler, "variable with this name already declared in this scope");
         return;
@@ -307,7 +310,7 @@ static void declareLocal(Compiler* compiler, Token identifier) {
 static void defineLocal(Compiler* compiler, Token identifier) {
     int index = indexLocal(compiler, identifier);
     // todo: check if index >= 0 ?
-    compiler->scope.locals[index].depth = compiler->scope.depth;
+    compiler->scope->locals[index].depth = compiler->scope->depth;
 }
 
 static void numberExpression(Compiler* compiler) {
@@ -327,7 +330,7 @@ static void identifierExpression(Compiler* compiler, int canAssign) {
     advance(compiler);
     void (*emitGet)(Compiler*, Token) = NULL;
     void (*emitSet)(Compiler*, Token) = NULL;
-    if (compiler->scope.depth > 0) { // locals realm
+    if (compiler->scope->depth > 0) { // locals realm
         emitGet = &emitLocalGet;
         emitSet = &emitLocalSet;
     } else {
@@ -500,7 +503,7 @@ static void letStat(Compiler* compiler) {
     advance(compiler); // skip 'let'
     eatError(compiler, TOK_IDENTIFIER, "expected identifier after \"let\"");
     Token identifier = compiler->previous;
-    if (compiler->scope.depth > 0) {
+    if (compiler->scope->depth > 0) {
         declareLocal(compiler, identifier);
     }
     if (eat(compiler, TOK_EQUAL)) {
@@ -508,7 +511,7 @@ static void letStat(Compiler* compiler) {
     } else {
         emitByte(compiler, OP_CONST_NIHL);
     }
-    if (compiler->scope.depth == 0) {
+    if (compiler->scope->depth == 0) {
         emitGlobalDecl(compiler, identifier);
     } else {
         defineLocal(compiler, identifier);
@@ -524,16 +527,16 @@ static void block(Compiler* compiler) {
 }
 
 static void startScope(Compiler* compiler) {
-    compiler->scope.depth++;
+    compiler->scope->depth++;
 }
 
 static void endScope(Compiler* compiler) {
-    Scope* scope = &compiler->scope;
+    Scope* scope = compiler->scope;
     while (scope->count > 0 && scope->locals[scope->count - 1].depth == scope->depth) {
         emitByte(compiler, OP_POP);
         scope->count--;
     }
-    compiler->scope.depth--;
+    compiler->scope->depth--;
 }
 
 static void blockStat(Compiler* compiler) {
@@ -632,7 +635,11 @@ ObjFunction* compile(Compiler* compiler, Collector* collector, char* source) {
     initLexer(&compiler->lexer, source);
     compiler->collector = collector;
     Scope startingScope;
-    pushScope(compiler, &startingScope);
+    startingScope.enclosing = NULL;
+    startingScope.depth = 0;
+    startingScope.count = 0;
+    startingScope.function = newFunction(compiler->collector);
+    compiler->scope = &startingScope;
 
     advance(compiler);
     statementList(compiler);

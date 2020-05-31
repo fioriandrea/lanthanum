@@ -13,12 +13,15 @@ struct sLocal {
 
 typedef struct sLocal Local;
 
-typedef struct {
+struct sScope {
+    struct sScope* enclosing;
     int depth;
     Local locals[256]; // todo: change constant
     int count;
     ObjFunction* function;
-} Scope;
+};
+
+typedef struct sScope Scope;
 
 typedef struct {
     Lexer lexer;
@@ -27,7 +30,7 @@ typedef struct {
     Collector* collector;
     int hadError;
     int panic;
-    Scope scope;
+    Scope *scope;
 } Compiler;
 
 void initCompiler(Compiler* compiler);
