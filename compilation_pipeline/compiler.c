@@ -9,7 +9,9 @@
 #include "../datastructs/object.h"
 
 #include "../debug/token_printer.h"
+#include "../debug/asm_printer.h"
 #define TRACE_TOKENS 
+#define PRINT_CODE
 
 #define MAX_BRANCHES 200
 
@@ -66,6 +68,7 @@
     }       
 
 static void expression(Compiler* compiler);
+static void nonCommaExpression(Compiler* compiler);
 static void statement(Compiler* compiler);
 
 static inline Chunk* compilingChunk(Compiler* compiler) {
@@ -283,6 +286,11 @@ static ObjFunction* popScope(Compiler* compiler) {
     emitRet(compiler);
     ObjFunction* function = compiler->scope->function;
     compiler->scope = compiler->scope->enclosing;
+#ifdef PRINT_CODE
+    printf("FUNCTION CODE:\n");
+    printChunk(function->chunk, function->name == NULL ? "main code" : function->name->chars);
+    printf("\n");
+#endif
     return function;
 }
 
@@ -392,6 +400,28 @@ static void primaryExpression(Compiler* compiler, int canAssign) {
     }
 }
 
+static uint8_t argList(Compiler* compiler) {
+    uint8_t argCount = 0;
+    if (!check(compiler, TOK_RIGHT_ROUND_BRACKET)) {
+        do {
+            argCount++;
+            nonCommaExpression(compiler);
+        } while (eat(compiler, TOK_COMMA));
+    }
+    eatError(compiler, TOK_RIGHT_ROUND_BRACKET, "expect \")\" after function arguments");
+    return argCount;
+}
+
+static void callExpression(Compiler* compiler, int canAssign) {
+    primaryExpression(compiler, canAssign);    
+    while (check(compiler, TOK_LEFT_ROUND_BRACKET)) {
+        advance(compiler);
+        uint8_t argCount = argList(compiler);
+        emitByte(compiler, OP_CALL);
+        emitByte(compiler, argCount);
+    }        
+}
+
 static void unaryExpression(Compiler* compiler, int canAssign) {
     TokenType operator;
     if (check(compiler, TOK_MINUS) || check(compiler, TOK_PLUS) || check(compiler, TOK_EXCLAMATION_MARK)) {
@@ -400,7 +430,7 @@ static void unaryExpression(Compiler* compiler, int canAssign) {
         unaryExpression(compiler, canAssign);
         emitUnary(compiler, operator);
     } else {
-        primaryExpression(compiler, canAssign);
+        callExpression(compiler, canAssign);
     }
 }
 

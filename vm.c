@@ -12,7 +12,6 @@
 #include "./compilation_pipeline/compiler.h"
 
 #define TRACE_EXEC
-#define PRINT_CODE
 #define TRACE_INTERNED
 #define TRACE_GLOBALS
 #define RUNTIME_ERROR 0
@@ -71,17 +70,6 @@ static int vmRun(VM* vm) {
         double a = as_cnumber(pop(vm)); \
         push(vm, destination(a operator b)); \
     } while (0)
-
-
-#ifdef PRINT_CODE
-    printf("VM CODE:\n");
-    printChunk(currentFrame->function->chunk, "code");
-    // printf("\n");
-    // for (int i = 0; i < currentFrame->function->chunk->lines.count; i++) {
-    //     printf("{l: %d, c: %d}\n", currentFrame->function->chunk->lines.lines[i].line, currentFrame->function->chunk->lines.lines[i].count);
-    // }
-    printf("\n");
-#endif
 
 #ifdef TRACE_EXEC
     printf("VM EXECUTION TRACE:\n");
