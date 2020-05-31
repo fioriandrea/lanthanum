@@ -69,7 +69,7 @@ static void expression(Compiler* compiler);
 static void statement(Compiler* compiler);
 
 static inline Chunk* compilingChunk(Compiler* compiler) {
-    return compiler->compilingFunction->chunk;
+    return compiler->scope.function->chunk;
 }
 
 static void error(Compiler* compiler, Token tok, char* message) {
@@ -143,8 +143,6 @@ void initCompiler(Compiler* compiler) {
     compiler->hadError = 0;
     compiler->panic = 0;
     compiler->collector = NULL;
-    compiler->scope.count = 0;
-    compiler->scope.depth = 0;
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
@@ -270,6 +268,18 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
         case TOK_PLUS_PLUS: emitByte(compiler, OP_CONCAT); break;
         case TOK_XOR: emitByte(compiler, OP_XOR); break;
     }
+}
+
+static void pushScope(Compiler* compiler, Scope* scope) {
+    scope->depth = 0;
+    scope->count = 0;
+    scope->function = newFunction(compiler->collector);
+    compiler->scope = *scope;
+}
+
+static ObjFunction* popScope(Compiler* compiler) {
+    emitRet(compiler);
+    return compiler->scope.function;
 }
 
 static int alreadyDeclaredLocal(Scope* scope, Token identifier) {
@@ -621,13 +631,13 @@ ObjFunction* compile(Compiler* compiler, Collector* collector, char* source) {
     initCompiler(compiler);
     initLexer(&compiler->lexer, source);
     compiler->collector = collector;
-    compiler->compilingFunction = newFunction(collector);
+    Scope startingScope;
+    pushScope(compiler, &startingScope);
 
     advance(compiler);
     statementList(compiler);
-    emitRet(compiler);
     freeLexer(&compiler->lexer);
-    return !compiler->hadError ? compiler->compilingFunction : NULL;
+    return !compiler->hadError ? popScope(compiler) : NULL;
 }
 
 void freeCompiler(Compiler* compiler) {

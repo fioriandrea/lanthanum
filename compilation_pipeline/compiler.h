@@ -17,6 +17,7 @@ typedef struct {
     int depth;
     Local locals[256]; // todo: change constant
     int count;
+    ObjFunction* function;
 } Scope;
 
 typedef struct {
@@ -24,7 +25,6 @@ typedef struct {
     Token current;
     Token previous;
     Collector* collector;
-    ObjFunction* compilingFunction;
     int hadError;
     int panic;
     Scope scope;
