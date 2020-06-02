@@ -11,9 +11,9 @@
 #include "./datastructs/value.h"
 #include "./compilation_pipeline/compiler.h"
 
-/*#define TRACE_EXEC
+#define TRACE_EXEC
 #define TRACE_INTERNED
-#define TRACE_GLOBALS*/
+#define TRACE_GLOBALS
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1
 

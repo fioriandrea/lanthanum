@@ -11,14 +11,21 @@ struct sLocal {
     int depth;
 };
 
+struct sUpvalue {
+    int index;
+    int ownedAbove;
+};
+
 typedef struct sLocal Local;
+typedef struct sUpvalue Upvalue;
 
 struct sScope {
     struct sScope* enclosing;
     int depth;
-    Local locals[256]; // todo: change constant
+    Local locals[700]; // todo: change constant
     int count;
     ObjFunction* function;
+    Upvalue upvalues[700];
 };
 
 typedef struct sScope Scope;

@@ -164,8 +164,13 @@ static void emitConstant(Compiler* compiler, Value val) {
     emit_addressable_at_current(compiler, OP_CONST_LONG, OP_CONST, val);
 }
 
-static void emitClosure(Compiler* compiler, ObjFunction* function) {
+static void emitClosure(Compiler* compiler, Scope* scope, ObjFunction* function) {
     emit_addressable_at_current(compiler, OP_CLOSURE_LONG, OP_CLOSURE, to_vobj(function));
+    for (int i = 0; i < function->upvalueCount; i++) {
+        Upvalue* upvalue = &scope->upvalues[i];
+        emitByte(compiler, upvalue->ownedAbove);
+        emitByte(compiler, upvalue->index);
+    }
 }
 
 static void emitGlobalDecl(Compiler* compiler, Token identifier) {
@@ -174,13 +179,13 @@ static void emitGlobalDecl(Compiler* compiler, Token identifier) {
     emit_addressable_at_current(compiler, OP_GLOBAL_DECL_LONG, OP_GLOBAL_DECL, name);
 }
 
-static void emitGlobalGet(Compiler* compiler, Token identifier) {
+static void emitGlobalGet(Compiler* compiler, Token identifier, int index) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
     emit_addressable_at_previous(compiler, OP_GLOBAL_GET_LONG, OP_GLOBAL_GET, name);
 }
 
-static void emitGlobalSet(Compiler* compiler, Token identifier) {
+static void emitGlobalSet(Compiler* compiler, Token identifier, int index) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
     emit_addressable_at_previous(compiler, OP_GLOBAL_SET_LONG, OP_GLOBAL_SET, name);
@@ -191,39 +196,65 @@ static int identifiersEqual(Token id1, Token id2) {
         memcmp(id1.start, id2.start, id1.length) == 0;
 }
 
-static int indexLocal(Compiler* compiler, Token identifier) {
-    for (int i = compiler->scope->count - 1; i >= 0; i--) {   
-        Local* local = &compiler->scope->locals[i];                  
-        if (identifiersEqual(identifier, local->name)) {           
+static int indexLocal(Scope* scope, Token identifier) {
+    for (int i = scope->count - 1; i >= 0; i--) {   
+        Local* local = &scope->locals[i];                  
+        if (identifiersEqual(identifier, local->name)) {
             return i;                                           
         }                                                     
     }
     return -1; 
 }
 
-static void emitLocalGet(Compiler* compiler, Token identifier) {
-    int index = indexLocal(compiler, identifier);
-    if (index < 0) {
-        emitGlobalGet(compiler, identifier);
-    } else {
-        if (compiler->scope->locals[index].depth < 0) { 
-            errorAtCurrent(compiler, "cannot read local variable in its own initializer");
-        }
-        ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
-        Value name = to_vobj(strname);
-        writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_GET_LONG, OP_LOCAL_GET, (uint16_t) index, compiler->previous.line);
+static int addUpvalue(Scope* scope, int index, int ownedAbove) {
+    int upvalueCount = scope->function->upvalueCount;
+    for (int i = 0; i < upvalueCount; i++) {
+        Upvalue* upvalue = &scope->upvalues[i];
+        if (upvalue->index == index && upvalue->ownedAbove == ownedAbove)
+            return i;
     }
+    scope->upvalues[upvalueCount].index = index;
+    scope->upvalues[upvalueCount].ownedAbove = ownedAbove;
+    scope->function->upvalueCount++;
+    return upvalueCount;
 }
 
-static void emitLocalSet(Compiler* compiler, Token identifier) {
-    int index = indexLocal(compiler, identifier);
-    if (index < 0) {
-        emitGlobalSet(compiler, identifier);
+static int indexUpvalue(Scope* scope, Token identifier) {
+    if (scope->enclosing == NULL)
+        return -1;
+    int index = indexLocal(scope->enclosing, identifier);
+    if (index >= 0) {
+        return addUpvalue(scope, index, 0);
     } else {
-        ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
-        Value name = to_vobj(strname);
-        writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_SET_LONG, OP_LOCAL_SET, (uint16_t) index, compiler->previous.line);
+        index = indexUpvalue(scope->enclosing, identifier);
+        if (index >= 0) {
+            return addUpvalue(scope, index, 1);
+        }
     }
+    return -1;
+}
+
+static void emitUpvalueGet(Compiler* compiler, Token identifier, int index) {
+    // todo
+}
+
+static void emitUpvalueSet(Compiler* compiler, Token identifier, int index) {
+    // todo
+}
+
+static void emitLocalGet(Compiler* compiler, Token identifier, int index) {
+    if (compiler->scope->locals[index].depth < 0) { 
+        errorAtCurrent(compiler, "cannot read local variable in its own initializer");
+    }
+    ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+    Value name = to_vobj(strname);
+    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_GET_LONG, OP_LOCAL_GET, (uint16_t) index, compiler->previous.line);
+}
+
+static void emitLocalSet(Compiler* compiler, Token identifier, int index) {
+    ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
+    Value name = to_vobj(strname);
+    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_SET_LONG, OP_LOCAL_SET, (uint16_t) index, compiler->previous.line);
 }
 
 static void emitRet(Compiler* compiler) {
@@ -330,7 +361,7 @@ static void declareLocal(Compiler* compiler, Token identifier) {
 }
 
 static void defineLocal(Compiler* compiler, Token identifier) {
-    int index = indexLocal(compiler, identifier);
+    int index = indexLocal(compiler->scope, identifier);
     // todo: check if index >= 0 ?
     compiler->scope->locals[index].depth = compiler->scope->depth;
 }
@@ -350,11 +381,15 @@ static void stringExpression(Compiler* compiler) {
 static void identifierExpression(Compiler* compiler, int canAssign) {
     Token identifier = compiler->current;
     advance(compiler);
-    void (*emitGet)(Compiler*, Token) = NULL;
-    void (*emitSet)(Compiler*, Token) = NULL;
-    if (compiler->scope->depth > 0) { // locals realm
+    void (*emitGet)(Compiler*, Token, int) = NULL;
+    void (*emitSet)(Compiler*, Token, int) = NULL;
+    int index = -1;
+    if (compiler->scope->depth > 0 && (index = indexLocal(compiler->scope, identifier)) >= 0) { // locals realm
         emitGet = &emitLocalGet;
         emitSet = &emitLocalSet;
+    } else if ((index = indexUpvalue(compiler->scope, identifier)) >= 0) {
+        emitGet = &emitUpvalueGet;
+        emitSet = &emitUpvalueSet;
     } else {
         emitGet = &emitGlobalGet;
         emitSet = &emitGlobalSet;
@@ -362,9 +397,9 @@ static void identifierExpression(Compiler* compiler, int canAssign) {
 
     if (canAssign && eat(compiler, TOK_EQUAL)) {
         expression(compiler);
-        (*emitSet)(compiler, identifier);
+        (*emitSet)(compiler, identifier, index);
     } else {
-        (*emitGet)(compiler, identifier);
+        (*emitGet)(compiler, identifier, index);
     }
 }
 
@@ -616,7 +651,7 @@ static void parseFunctionDeclaration(Compiler* compiler, Token name) {
     advance(compiler);
     block(compiler);
     ObjFunction* function = popScope(compiler);
-    emitClosure(compiler, function);
+    emitClosure(compiler, &scope, function);
 }
 
 static void funcStat(Compiler* compiler) {

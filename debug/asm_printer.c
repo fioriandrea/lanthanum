@@ -54,9 +54,29 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
 #define print_addressed_long_instruction(op) case op: return printAddressedLongInstruction(#op, chunk, offset);
 #define print_argumented_instruction(op) case op: return printArgumentedInstruction(#op, chunk, offset);
 #define print_argumented_long_instruction(op) case op: return printArgumentedLongInstruction(#op, chunk, offset);
+#define print_closure(op, l) \
+    case op: \
+             { \
+                 offset++; \
+                 uint16_t address = l ? join_bytes(chunk->code[offset++], chunk->code[offset++]) : chunk->code[offset++]; \
+                 Value funVal = chunk->constants.values[address]; \
+                 printf("%s [%d] '", #op, address); \
+                 printValue(funVal); \
+                 printf("'\n"); \
+                 ObjFunction* function = as_function(funVal); \
+                 for (int i = 0; i < function->upvalueCount; i++) { \
+                     int ownedAbove = chunk->code[offset++]; \
+                     int index = chunk->code[offset++]; \
+                     printf("index -> %d [%s]\n", index, ownedAbove ? "ownedAbove" : "ownedHere"); \
+                 } \
+                 return offset; \
+             } 
+
     printf("line = %d: ", lineArrayGet(&chunk->lines, offset));
     switch (code) {
-        print_addressed_instruction(OP_CONST)
+        print_closure(OP_CLOSURE, 0)
+            print_closure(OP_CLOSURE_LONG, 1)
+            print_addressed_instruction(OP_CONST)
             print_addressed_long_instruction(OP_CONST_LONG)
             print_addressed_instruction(OP_GLOBAL_DECL)
             print_addressed_long_instruction(OP_GLOBAL_DECL_LONG)
@@ -64,8 +84,6 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             print_addressed_long_instruction(OP_GLOBAL_GET_LONG)
             print_addressed_instruction(OP_GLOBAL_SET)
             print_addressed_long_instruction(OP_GLOBAL_SET_LONG)
-            print_addressed_instruction(OP_CLOSURE)
-            print_addressed_long_instruction(OP_CLOSURE_LONG)
             print_argumented_instruction(OP_LOCAL_GET)
             print_argumented_long_instruction(OP_LOCAL_GET_LONG)
             print_argumented_instruction(OP_LOCAL_SET)
@@ -105,4 +123,5 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
 #undef print_simple_instruction
 #undef print_argumented_instruction
 #undef print_argumented_long_instruction
+#undef print_closure
 }

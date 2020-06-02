@@ -6,7 +6,7 @@
 
 //#define debug_hash_codes
 
-int isObjType(Value value, ObjType type) {
+int isObjType(struct sValue value, ObjType type) {
     return is_obj(value) && as_obj(value)->type == type;
 }
 
@@ -16,10 +16,10 @@ void initValueArray(ValueArray* valarray) {
     valarray->values = NULL;
 }
 
-int writeValueArray(Collector* collector, ValueArray* valarray, Value value) {
+int writeValueArray(Collector* collector, ValueArray* valarray, struct sValue value) {
     if (valarray->count + 1 >= valarray->capacity) {
         int newcap = compute_capacity(valarray->capacity);
-        valarray->values = grow_array(collector, Value, valarray->values, valarray->capacity, newcap);
+        valarray->values = grow_array(collector, struct sValue, valarray->values, valarray->capacity, newcap);
         valarray->capacity = newcap; 
     }     
     valarray->values[valarray->count++] = value;
@@ -31,7 +31,7 @@ void freeValueArray(Collector* collector, ValueArray* valarray) {
     initValueArray(valarray);
 }
 
-uint32_t hashValue(Value value) {
+uint32_t hashValue(struct sValue value) {
     switch (value.type) {
         case VALUE_NIHL: return hash_nihl;
         case VALUE_BOOL: return hash_bool(value);
@@ -40,16 +40,16 @@ uint32_t hashValue(Value value) {
     }
 }
 
-int isTruthy(Value val) {
+int isTruthy(struct sValue val) {
     return !(is_nihl(val) || (is_bool(val) && !as_cbool(val)) ||
             (is_number(val) && as_cnumber(val) == 0));
 }
 
-int valuesIntegers(Value a, Value b) {
+int valuesIntegers(struct sValue a, struct sValue b) {
     return is_integer(as_cnumber(a)) && is_integer(as_cnumber(b));
 }
 
-int valuesEqual(Value a, Value b) {
+int valuesEqual(struct sValue a, struct sValue b) {
     if (a.type != b.type)
         return 0;
     switch (a.type) {
@@ -60,15 +60,15 @@ int valuesEqual(Value a, Value b) {
     }
 }
 
-int valuesConcatenable(Value a, Value b) {
+int valuesConcatenable(struct sValue a, struct sValue b) {
     return is_string(a) && is_string(b);
 }
 
-int valuesNumbers(Value a, Value b) {
+int valuesNumbers(struct sValue a, struct sValue b) {
     return is_number(a) && is_number(b);
 }
 
-Value concatenate(Collector* collector, Value a, Value b) {
+struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b) {
     ObjString* sa = as_string(a);
     ObjString* sb = as_string(b);
     int length = sa->length + sb->length;
@@ -79,9 +79,9 @@ Value concatenate(Collector* collector, Value a, Value b) {
     return to_vobj(takeString(collector, chars, length));
 }
 
-void printValue(Value val) {
+void printValue(struct sValue val) {
 #ifdef debug_hash_codes
-    printf("hash[%zu]:", hashValue(val));
+    printf("hash[%zu]:", hashstruct sValue(val));
 #endif
     switch (val.type) {
         case VALUE_BOOL:

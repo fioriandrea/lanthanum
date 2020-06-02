@@ -6,5 +6,6 @@
 #include <stddef.h>
 typedef struct sCollector Collector;
 typedef struct sChunk Chunk;
+typedef struct sValue Value;
 
 #endif

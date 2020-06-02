@@ -5,6 +5,7 @@
 #include "../util.h"
 #include "../memory.h"
 #include "chunk.h"
+#include "value.h"
 
 #define allocate_obj(collector, type, typeenum) \
     ((type*) allocateObj(collector, typeenum, sizeof(type)))
@@ -47,6 +48,7 @@ ObjFunction* newFunction(Collector* collector) {
     ObjFunction* function = allocate_obj(collector, ObjFunction, OBJ_FUNCTION);
     function->name = NULL;
     function->arity = 0;
+    function->upvalueCount = 0;
     function->chunk = allocate_pointer(collector, Chunk, sizeof(Chunk));
     initChunk(function->chunk);
     return function;
@@ -56,6 +58,12 @@ ObjClosure* newClosure(Collector* collector, ObjFunction* function) {
     ObjClosure* closure = allocate_obj(collector, ObjClosure, OBJ_CLOSURE);
     closure->function = function;
     return closure;
+}
+
+ObjUpvalue* newUpvalue(Collector* collector, Value* value) {
+    ObjUpvalue* upvalue = allocate_obj(collector, ObjUpvalue, OBJ_UPVALUE);
+    upvalue->value = value;
+    return upvalue;
 }
 
 void freeObject(Collector* collector, Obj* object) {
@@ -71,6 +79,7 @@ void freeObject(Collector* collector, Obj* object) {
             {
                 ObjFunction* function = (ObjFunction*) object;
                 freeChunk(collector, function->chunk);
+                free_pointer(collector, function->chunk, sizeof(Chunk));
                 free_pointer(collector, function, sizeof(ObjFunction));
                 break;
             }      
@@ -80,6 +89,12 @@ void freeObject(Collector* collector, Obj* object) {
                 free_pointer(collector, closure, sizeof(ObjClosure));
                 break;
             } 
+        case OBJ_UPVALUE:
+            {
+                ObjUpvalue* upvalue = (ObjUpvalue*) object;
+                free_pointer(collector, upvalue, sizeof(ObjUpvalue));
+                break;
+            }
     }
 }
 
@@ -102,6 +117,10 @@ void printObj(Obj* obj) {
                 ObjClosure* closure = (ObjClosure*) obj;
                 printObj((Obj*) closure->function);
                 break;
+            }
+        case OBJ_UPVALUE:
+            {
+                printf("upvalue");
             }
     }
 }
