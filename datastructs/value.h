@@ -36,8 +36,10 @@ typedef struct {
 
 #define is_string(value) isObjType(value, OBJ_STRING)
 #define is_function(value) isObjType(value, OBJ_FUNCTION)
+#define is_closure(value) isObjType(value, OBJ_CLOSURE)
 
 #define as_function(value) ((ObjFunction*) as_obj(value))
+#define as_closure(value) ((ObjClosure*) as_obj(value))
 #define as_string(value) ((ObjString*) as_obj(value))
 #define as_cstring(value) (as_string(value)->chars)
 

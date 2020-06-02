@@ -28,8 +28,8 @@ void initVM(VM* vm) {
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
-    int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].function->chunk->code - 1; 
-    int line = lineArrayGet(&vm->frames[vm->fp - 1].function->chunk->lines, instruction);         
+    int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].closure->function->chunk->code - 1; 
+    int line = lineArrayGet(&vm->frames[vm->fp - 1].closure->function->chunk->lines, instruction);         
 
     va_list args;                                    
     va_start(args, format);                          
@@ -57,10 +57,13 @@ static Value pop(VM* vm) {
 static int vmRun(VM* vm) {
     vm->fp = 1;
     CallFrame* currentFrame = &vm->frames[0];
+    OpCode caseCode;
 #define read_byte() (*(currentFrame->pc++))
 #define read_long() join_bytes(read_byte(), read_byte())
-#define read_constant() (currentFrame->function->chunk->constants.values[read_byte()])
-#define read_constant_long() (currentFrame->function->chunk->constants.values[read_long()])
+#define read_constant() (currentFrame->closure->function->chunk->constants.values[read_byte()])
+#define read_constant_long() (currentFrame->closure->function->chunk->constants.values[read_long()])
+#define read_long_if(oplong) (caseCode == (oplong) ? read_long() : read_byte())
+#define read_constant_long_if(oplong) (caseCode == (oplong) ? read_constant_long() : read_constant())
 #define binary_op(operator, destination) \
     do { \
         if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
@@ -79,7 +82,7 @@ static int vmRun(VM* vm) {
     for (;;) {
 #ifdef TRACE_EXEC
         printf("\n");
-        printInstruction(currentFrame->function->chunk, *currentFrame->pc, (int) (currentFrame->pc - currentFrame->function->chunk->code));
+        printInstruction(currentFrame->closure->function->chunk, *currentFrame->pc, (int) (currentFrame->pc - currentFrame->closure->function->chunk->code));
         printf("stack: [");
         for (Value* start = vm->stack; start < vm->sp; start++) {
             printValue(*start);
@@ -88,7 +91,7 @@ static int vmRun(VM* vm) {
         printf("]\n");
         printf("\n");
 #endif
-        switch (read_byte()) {
+        switch ((caseCode = read_byte())) {
             case OP_RET: 
                 {
                     Value retVal = pop(vm);
@@ -107,12 +110,13 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "too many function arguments");
                         return RUNTIME_ERROR;
                     }
-                    Value functionValue = peek(vm, argCount);
-                    if (!is_function(functionValue)) {
+                    Value closureValue = peek(vm, argCount);
+                    if (!is_closure(closureValue)) {
                         runtimeError(vm, "can only call functions");
                         return RUNTIME_ERROR;
                     }
-                    ObjFunction* function = as_function(functionValue);
+                    ObjClosure* closure = as_closure(closureValue);
+                    ObjFunction* function = closure->function;
                     if (argCount != function->arity) {
                         runtimeError(vm, "expected %d arguments, got %d", function->arity, argCount);
                         return RUNTIME_ERROR;
@@ -122,53 +126,39 @@ static int vmRun(VM* vm) {
                         return RUNTIME_ERROR;                                
                     } 
                     currentFrame = &vm->frames[vm->fp++];
-                    currentFrame->function = function;
-                    currentFrame->pc = currentFrame->function->chunk->code;
+                    currentFrame->closure = closure;
+                    currentFrame->pc = currentFrame->closure->function->chunk->code;
                     currentFrame->localStack = vm->sp - argCount;
                     break;
                 }
-            case OP_CONST: 
+            case OP_CLOSURE:
+            case OP_CLOSURE_LONG:
                 {
-                    Value constant = read_constant();
-                    push(vm, constant);
+                    Value funVal = read_constant_long_if(OP_CLOSURE_LONG);
+                    ObjFunction* function = as_function(funVal);
+                    ObjClosure* closure = newClosure(vm->collector, function);
+                    push(vm, to_vobj(closure));
                     break;
                 }
+            case OP_CONST: 
             case OP_CONST_LONG:
                 {
-                    Value constant = read_constant_long();
+                    Value constant = read_constant_long_if(OP_CONST_LONG);
                     push(vm, constant);
                     break;
                 }
             case OP_GLOBAL_DECL:
-                {
-                    Value name = read_constant();
-                    mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
-                    pop(vm); 
-                    break;
-                }
             case OP_GLOBAL_DECL_LONG:
                 {
-                    Value name = read_constant_long();
+                    Value name = read_constant_long_if(OP_GLOBAL_DECL_LONG);
                     mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
                     pop(vm); 
                     break;
                 }
             case OP_GLOBAL_GET:
-                {
-                    Value name = read_constant();
-                    Value value;
-                    int present = mapGet(&vm->globals, name, &value);
-                    if (!present) {
-                        runtimeError(vm, "cannot get value of undefined global variable");
-                        return RUNTIME_ERROR;
-                    } else {
-                        push(vm, value);
-                    }
-                    break;
-                }
             case OP_GLOBAL_GET_LONG:
                 {
-                    Value name = read_constant_long();
+                    Value name = read_constant_long_if(OP_GLOBAL_GET_LONG);
                     Value value;
                     int present = mapGet(&vm->globals, name, &value);
                     if (!present) {
@@ -180,20 +170,9 @@ static int vmRun(VM* vm) {
                     break;
                 }
             case OP_GLOBAL_SET:
-                {
-                    Value name = read_constant();
-                    Value value;
-                    if (!mapGet(&vm->globals, name, &value)) {
-                        runtimeError(vm, "cannot assign undefined global variable");
-                        return RUNTIME_ERROR;
-                    } else {
-                        mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
-                    }
-                    break;
-                }
             case OP_GLOBAL_SET_LONG:
                 {
-                    Value name = read_constant_long();
+                    Value name = read_constant_long_if(OP_GLOBAL_SET_LONG);
                     Value value;
                     if (!mapGet(&vm->globals, name, &value)) {
                         runtimeError(vm, "cannot assign undefined global variable");
@@ -204,26 +183,16 @@ static int vmRun(VM* vm) {
                     break;
                 }
             case OP_LOCAL_GET:
-                {
-                    uint8_t argument = read_byte();
-                    push(vm, currentFrame->localStack[argument]);
-                    break;
-                }
             case OP_LOCAL_GET_LONG:
                 {
-                    uint16_t argument = read_long();
+                    uint8_t argument = read_long_if(OP_LOCAL_GET_LONG);
                     push(vm, currentFrame->localStack[argument]);
                     break;
                 }
             case OP_LOCAL_SET:
-                {
-                    uint8_t argument = read_byte();
-                    currentFrame->localStack[argument] = peek(vm, 0);
-                    break;
-                }
             case OP_LOCAL_SET_LONG:
                 {
-                    uint8_t argument = read_long();
+                    uint8_t argument = read_long_if(OP_LOCAL_SET_LONG);
                     currentFrame->localStack[argument] = peek(vm, 0);
                     break;
                 }
@@ -429,12 +398,14 @@ static int vmRun(VM* vm) {
 #undef read_byte
 #undef read_constant
 #undef read_constant_long
+#undef read_long_if
+#undef read_constant_long_if
 }
 
 int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     initVM(vm);
     CallFrame* initialFrame = &vm->frames[0];
-    initialFrame->function = function;
+    initialFrame->closure = newClosure(collector, function);
     initialFrame->pc = function->chunk->code;
     initialFrame->localStack = vm->stack;
 

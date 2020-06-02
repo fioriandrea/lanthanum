@@ -52,6 +52,12 @@ ObjFunction* newFunction(Collector* collector) {
     return function;
 }
 
+ObjClosure* newClosure(Collector* collector, ObjFunction* function) {
+    ObjClosure* closure = allocate_obj(collector, ObjClosure, OBJ_CLOSURE);
+    closure->function = function;
+    return closure;
+}
+
 void freeObject(Collector* collector, Obj* object) {
     switch (object->type) {                                 
         case OBJ_STRING: 
@@ -64,10 +70,16 @@ void freeObject(Collector* collector, Obj* object) {
         case OBJ_FUNCTION:
             {
                 ObjFunction* function = (ObjFunction*) object;
-                free_pointer(collector, function->chunk, sizeof(Chunk));
+                freeChunk(collector, function->chunk);
                 free_pointer(collector, function, sizeof(ObjFunction));
                 break;
-            }            
+            }      
+        case OBJ_CLOSURE:
+            {
+                ObjClosure* closure = (ObjClosure*) object;
+                free_pointer(collector, closure, sizeof(ObjClosure));
+                break;
+            } 
     }
 }
 
@@ -83,6 +95,12 @@ void printObj(Obj* obj) {
                     printf("<main script>");
                 else
                     printf("<%s function>", function->name->chars);
+                break;
+            }
+        case OBJ_CLOSURE:
+            {
+                ObjClosure* closure = (ObjClosure*) obj;
+                printObj((Obj*) closure->function);
                 break;
             }
     }

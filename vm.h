@@ -10,13 +10,12 @@
 #define MAX_STACK (MAX_FRAMES * UINT8_MAX)
 
 typedef struct {
-    ObjFunction* function;
+    ObjClosure* closure;
     uint8_t* pc;
     Value* localStack;
 } CallFrame;
 
 typedef struct {
-    ObjFunction* function;
     CallFrame frames[MAX_FRAMES];
     int fp;
     Value stack[MAX_STACK];

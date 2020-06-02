@@ -152,26 +152,38 @@ static void emitByte(Compiler* compiler, uint8_t byte) {
     writeChunk(compiler->collector, compilingChunk(compiler), byte, compiler->current.line);
 }
 
+static inline void emit_addressable_at_current(Compiler* compiler, OpCode longCode, OpCode shortCode, Value value) {
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), longCode, shortCode, value, compiler->current.line);
+}
+
+static inline void emit_addressable_at_previous(Compiler* compiler, OpCode longCode, OpCode shortCode, Value value) {
+    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), longCode, shortCode, value, compiler->previous.line);
+}
+
 static void emitConstant(Compiler* compiler, Value val) {
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_CONST_LONG, OP_CONST, val, compiler->current.line);
+    emit_addressable_at_current(compiler, OP_CONST_LONG, OP_CONST, val);
+}
+
+static void emitClosure(Compiler* compiler, ObjFunction* function) {
+    emit_addressable_at_current(compiler, OP_CLOSURE_LONG, OP_CLOSURE, to_vobj(function));
 }
 
 static void emitGlobalDecl(Compiler* compiler, Token identifier) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_DECL_LONG, OP_GLOBAL_DECL, name, compiler->current.line);
+    emit_addressable_at_current(compiler, OP_GLOBAL_DECL_LONG, OP_GLOBAL_DECL, name);
 }
 
 static void emitGlobalGet(Compiler* compiler, Token identifier) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_GET_LONG, OP_GLOBAL_GET, name, compiler->previous.line);
+    emit_addressable_at_previous(compiler, OP_GLOBAL_GET_LONG, OP_GLOBAL_GET, name);
 }
 
 static void emitGlobalSet(Compiler* compiler, Token identifier) {
     ObjString* strname = copyString(compiler->collector, identifier.start, identifier.length);
     Value name = to_vobj(strname);
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), OP_GLOBAL_SET_LONG, OP_GLOBAL_SET, name, compiler->previous.line);
+    emit_addressable_at_previous(compiler, OP_GLOBAL_SET_LONG, OP_GLOBAL_SET, name);
 }
 
 static int identifiersEqual(Token id1, Token id2) {
@@ -604,7 +616,7 @@ static void parseFunctionDeclaration(Compiler* compiler, Token name) {
     advance(compiler);
     block(compiler);
     ObjFunction* function = popScope(compiler);
-    emitConstant(compiler, to_vobj(function));
+    emitClosure(compiler, function);
 }
 
 static void funcStat(Compiler* compiler) {
