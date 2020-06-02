@@ -32,14 +32,20 @@ typedef struct {
     int upvalueCount;
 } ObjFunction;
 
-typedef struct {
+struct sObjUpvalue {
     Obj obj;
     Value* value;
-} ObjUpvalue;
+    Value* closed;
+    struct sObjUpvalue* next;
+};
+
+typedef struct sObjUpvalue ObjUpvalue;
 
 typedef struct {
     Obj obj;
     ObjFunction* function;
+    ObjUpvalue** upvalues;
+    int upvalueCount;
 } ObjClosure;
 
 ObjString* copyString(Collector* collector, char* chars, int length);
@@ -47,6 +53,7 @@ ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
+void closeUpvalue(Collector* collector, ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
 void printObj(Obj* obj);
 

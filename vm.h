@@ -22,6 +22,7 @@ typedef struct {
     Value* sp;
     Collector* collector;
     HashMap globals;
+    ObjUpvalue* openUpvalues;
 } VM;
 
 void initVM(VM* vm);

@@ -9,6 +9,7 @@
 struct sLocal {
     Token name;
     int depth;
+    int isCaptured;
 };
 
 struct sUpvalue {

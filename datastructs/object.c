@@ -55,15 +55,28 @@ ObjFunction* newFunction(Collector* collector) {
 }
 
 ObjClosure* newClosure(Collector* collector, ObjFunction* function) {
+    ObjUpvalue** upvalues = allocate_block(collector, ObjUpvalue*, function->upvalueCount);
+    for (int i = 0; i < function->upvalueCount; i++)
+        upvalues[i] = NULL;
     ObjClosure* closure = allocate_obj(collector, ObjClosure, OBJ_CLOSURE);
     closure->function = function;
+    closure->upvalueCount = function->upvalueCount;
+    closure->upvalues = upvalues;
     return closure;
 }
 
 ObjUpvalue* newUpvalue(Collector* collector, Value* value) {
     ObjUpvalue* upvalue = allocate_obj(collector, ObjUpvalue, OBJ_UPVALUE);
     upvalue->value = value;
+    upvalue->next = NULL;
+    upvalue->closed = NULL;
     return upvalue;
+}
+
+void closeUpvalue(Collector* collector, ObjUpvalue* upvalue) {
+    upvalue->closed = allocate_pointer(collector, Value, sizeof(Value));
+    *upvalue->closed = *upvalue->value;
+    upvalue->value = upvalue->closed;
 }
 
 void freeObject(Collector* collector, Obj* object) {
@@ -86,12 +99,16 @@ void freeObject(Collector* collector, Obj* object) {
         case OBJ_CLOSURE:
             {
                 ObjClosure* closure = (ObjClosure*) object;
+                free_block(collector, ObjUpvalue*, closure->upvalues, closure->upvalueCount); 
                 free_pointer(collector, closure, sizeof(ObjClosure));
                 break;
             } 
         case OBJ_UPVALUE:
             {
                 ObjUpvalue* upvalue = (ObjUpvalue*) object;
+                if (upvalue->closed != NULL) {
+                    free_pointer(collector, upvalue->closed, sizeof(Value));
+                }
                 free_pointer(collector, upvalue, sizeof(ObjUpvalue));
                 break;
             }

@@ -25,6 +25,7 @@ void initVM(VM* vm) {
     vm->fp = 0;
     resetStack(vm);
     initMap(&vm->globals);
+    vm->openUpvalues = NULL;
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
@@ -33,7 +34,7 @@ static void runtimeError(VM* vm, char* format, ...) {
 
     va_list args;                                    
     va_start(args, format);                          
-    fprintf(stderr, "runtime error [line %d] in script: ", line);  
+    fprintf(stderr, "runtime error [line %d] in program: ", line);  
     vfprintf(stderr, format, args);                  
     va_end(args);                                    
     fputs("\n", stderr);
@@ -52,6 +53,30 @@ static void push(VM* vm, Value val) {
 static Value pop(VM* vm) {
     vm->sp--;
     return *vm->sp;
+}
+
+static void closeOnStackUpvalue(VM* vm, Value* value) {
+    // todo: this can be optimized
+    ObjUpvalue* prev = NULL;
+    ObjUpvalue* current = vm->openUpvalues;
+    if (current == NULL)
+        return;
+    if (current->value == value) {
+        vm->openUpvalues = current->next;
+        closeUpvalue(vm->collector, current);
+    } else {
+        prev = current;
+        current = current->next;
+        while (current != NULL) {
+            if (current->value == value) {
+                prev->next = current->next;
+                closeUpvalue(vm->collector, current);
+                break;
+            }
+            prev = prev->next;
+            current = current->next;
+        }
+    }
 }
 
 static int vmRun(VM* vm) {
@@ -98,7 +123,11 @@ static int vmRun(VM* vm) {
                     vm->fp--;
                     if (vm->fp == 0)
                         return RUNTIME_OK;
-                    vm->sp = currentFrame->localStack - 1; // -1 to skip function sitting in stack
+                    while (vm->sp > currentFrame->localStack - 1) { // -1 to skip function sitting in stack
+                        // todo this can be done more efficiently
+                        closeOnStackUpvalue(vm, vm->sp - 1);
+                        vm->sp--;
+                    }
                     currentFrame = &vm->frames[vm->fp - 1];
                     push(vm, retVal);
                     break;
@@ -138,6 +167,42 @@ static int vmRun(VM* vm) {
                     ObjFunction* function = as_function(funVal);
                     ObjClosure* closure = newClosure(vm->collector, function);
                     push(vm, to_vobj(closure));
+                    for (int i = 0; i < closure->upvalueCount; i++) {
+                        uint8_t ownedAbove = read_byte();
+                        uint8_t index = read_byte();
+                        if (ownedAbove) {
+                            closure->upvalues[i] = currentFrame->closure->upvalues[index];
+                        } else {
+                            Value* value = currentFrame->localStack + index;
+                            ObjUpvalue* current = vm->openUpvalues;
+                            while (current != NULL) {
+                                if (current->value == value)
+                                    break;
+                                current = current->next;
+                            }
+                            if (current == NULL) {
+                                closure->upvalues[i] = newUpvalue(vm->collector, currentFrame->localStack + index);
+                                closure->upvalues[i]->next = vm->openUpvalues;
+                                vm->openUpvalues = closure->upvalues[i];
+                            } else {
+                                closure->upvalues[i] = current;
+                            }
+                        }
+                    }
+                    break;
+                }
+            case OP_UPVALUE_GET:
+            case OP_UPVALUE_GET_LONG:
+                {
+                    uint16_t index = read_long_if(OP_UPVALUE_GET_LONG);
+                    push(vm, *currentFrame->closure->upvalues[index]->value);
+                    break;
+                }
+            case OP_UPVALUE_SET:
+            case OP_UPVALUE_SET_LONG:
+                {
+                    uint16_t index = read_long_if(OP_UPVALUE_SET_LONG);
+                    *currentFrame->closure->upvalues[index]->value = peek(vm, 0);
                     break;
                 }
             case OP_CONST: 
@@ -185,14 +250,14 @@ static int vmRun(VM* vm) {
             case OP_LOCAL_GET:
             case OP_LOCAL_GET_LONG:
                 {
-                    uint8_t argument = read_long_if(OP_LOCAL_GET_LONG);
+                    uint16_t argument = read_long_if(OP_LOCAL_GET_LONG);
                     push(vm, currentFrame->localStack[argument]);
                     break;
                 }
             case OP_LOCAL_SET:
             case OP_LOCAL_SET_LONG:
                 {
-                    uint8_t argument = read_long_if(OP_LOCAL_SET_LONG);
+                    uint16_t argument = read_long_if(OP_LOCAL_SET_LONG);
                     currentFrame->localStack[argument] = peek(vm, 0);
                     break;
                 }
@@ -331,6 +396,13 @@ static int vmRun(VM* vm) {
                 }
             case OP_POP:
                 {
+                    pop(vm);
+                    break;
+                }
+            case OP_CLOSE_UPVALUE:
+                {
+                    Value* value = vm->sp - 1; 
+                    closeOnStackUpvalue(vm, value);
                     pop(vm);
                     break;
                 }

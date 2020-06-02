@@ -48,7 +48,10 @@ typedef enum {
     OP_CLOSURE,
     OP_CLOSURE_LONG,
     OP_UPVALUE_GET,
+    OP_UPVALUE_GET_LONG,
     OP_UPVALUE_SET,
+    OP_UPVALUE_SET_LONG,
+    OP_CLOSE_UPVALUE,
 } OpCode;
 
 struct sChunk {
