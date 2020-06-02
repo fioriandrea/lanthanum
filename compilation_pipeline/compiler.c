@@ -7,11 +7,7 @@
 #include "../datastructs/value.h"
 #include "../util.h"
 #include "../datastructs/object.h"
-
-#include "../debug/token_printer.h"
-#include "../debug/asm_printer.h"
-#define TRACE_TOKENS 
-#define PRINT_CODE
+#include "../debug/debug_switches.h"
 
 #define MAX_BRANCHES 200
 

@@ -4,16 +4,12 @@
 #include <string.h>
 
 #include "vm.h"
-#include "./debug/asm_printer.h"
-#include "./debug/map_printer.h"
 #include "memory.h"
 #include "util.h"
 #include "./datastructs/value.h"
 #include "./compilation_pipeline/compiler.h"
+#include "./debug/debug_switches.h"
 
-#define TRACE_EXEC
-#define TRACE_INTERNED
-#define TRACE_GLOBALS
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1
 
