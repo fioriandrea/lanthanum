@@ -39,23 +39,6 @@ static void collectGarbage(struct sCollector* collector) {
 
     // sweep
 
-    /*Obj* prev = NULL;
-      Obj* current = collector->objects;
-      while (current != NULL) {
-      if (!current->marked) {
-      Obj* toFree = current;
-      if (prev != NULL) {
-      prev->next = current->next;
-      }
-      prev = current;
-      current = current->next;
-      freeObject(NULL, toFree);
-      } else {
-      current->marked = 0;
-      prev = current;
-      current = current->next;
-      }
-      }*/
     Obj* previous = NULL;         
     Obj* object = collector->objects;     
     while (object != NULL) {      
@@ -106,7 +89,6 @@ void initCollector(Collector* collector) {
 }
 
 void freeCollector(Collector* collector) {
-    // todo: be sure that map is garbage collected
     freeMap(NULL, &collector->interned);
     while (collector->objects != NULL) {
         Obj* next = collector->objects->next;
