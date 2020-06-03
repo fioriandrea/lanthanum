@@ -45,24 +45,23 @@ static void collectGarbage(struct sCollector* collector) {
 
     Obj* previous = NULL;         
     Obj* object = collector->objects;     
-    while (object != NULL) {      
-        if (object->marked) {     
+    while (object != NULL) {
+        if (!object->marked) {
+            Obj* toFree = object;
+            if (previous == NULL) {
+                object = object->next;
+                collector->objects = object;
+            } else {
+                previous->next = object->next;
+                object = object->next;
+            }
+            freeObject(NULL, toFree);
+        } else {
             object->marked = 0;
-            previous = object;        
-            object = object->next;    
-        } else {                    
-            Obj* unreached = object;
-
-            object = object->next;    
-            if (previous != NULL) {   
-                previous->next = object;
-            } else {                  
-                collector->objects = object;    
-            }                         
-
-            freeObject(NULL, unreached);    
-        }                           
-    }           
+            previous = object;
+            object = object->next;
+        }
+    }
 #ifdef TRACE_GC
     printf("END GC\n");
 #endif 
