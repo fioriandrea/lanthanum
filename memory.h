@@ -13,6 +13,10 @@ struct sCollector {
     VM* vm;
     Obj* objects;
     size_t allocated;
+    Obj** worklist;
+    int worklistCount;
+    int worklistCapacity;
+    Obj* safeObj;
 };
 
 #define compute_capacity(oldcap) \

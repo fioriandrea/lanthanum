@@ -99,8 +99,13 @@ void printValue(struct sValue val) {
     }
 }
 
-void markValue(struct sValue value) {
+void markValue(Collector* collector, struct sValue value) {
     if (!is_obj(value))
         return;
-    markObject(as_obj(value));
+    markObject(collector, as_obj(value));
+}
+
+void markValueArray(Collector* collector, ValueArray* values) {
+    for (int i = 0; i < values->count; i++)
+        markValue(collector, values->values[i]);
 }

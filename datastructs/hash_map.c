@@ -136,7 +136,7 @@ ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length) {
     return NULL;
 }
 
-void markMap(HashMap* map) {
+void markMap(Collector* collector, HashMap* map) {
     if (map->count == 0)
         return;
     for (int i = 0; i < map->capacity; i++) {
@@ -145,8 +145,8 @@ void markMap(HashMap* map) {
             // mark inner linked list
             while (entry != NULL) {
                 // mark each entry in linked list
-                markValue(entry->key);
-                markValue(entry->value);
+                markValue(collector, entry->key);
+                markValue(collector, entry->value);
                 entry = entry->next;
             }
         }

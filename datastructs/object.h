@@ -54,9 +54,10 @@ ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
-void closeUpvalue(Collector* collector, ObjUpvalue* upvalue);
+void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
 void printObj(Obj* obj);
-void markObject(Obj* obj);
+void markObject(Collector* collector, Obj* obj);
+void blackenObject(Collector* collector, Obj* obj);
 
 #endif

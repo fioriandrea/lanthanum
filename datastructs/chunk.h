@@ -67,5 +67,6 @@ int writeChunk(Collector* collector, struct sChunk* chunk, uint8_t byte, int lin
 void freeChunk(Collector* collector, struct sChunk* chunk);
 int writeVariableSizeOp(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, uint16_t argument, int line);
 int writeAddressableInstruction(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, Value val, int line);
+void markChunk(Collector* collector, Chunk* chunk);
 
 #endif

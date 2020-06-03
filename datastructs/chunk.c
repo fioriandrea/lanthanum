@@ -45,3 +45,7 @@ int writeAddressableInstruction(Collector* collector, struct sChunk* chunk, OpCo
     uint16_t address = (uint16_t) writeValueArray(collector, &chunk->constants, val);
     return writeVariableSizeOp(collector, chunk, oplong, opshort, address, line);
 }
+
+void markChunk(Collector* collector, Chunk* chunk) {
+    markValueArray(collector, &chunk->constants);
+}

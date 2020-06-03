@@ -60,14 +60,14 @@ static void closeOnStackUpvalue(VM* vm, Value* value) {
         return;
     if (current->value == value) {
         vm->openUpvalues = current->next;
-        closeUpvalue(vm->collector, current);
+        closeUpvalue(current);
     } else {
         prev = current;
         current = current->next;
         while (current != NULL) {
             if (current->value == value) {
                 prev->next = current->next;
-                closeUpvalue(vm->collector, current);
+                closeUpvalue(current);
                 break;
             }
             prev = prev->next;
@@ -451,9 +451,12 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "values must be strings");
                         return RUNTIME_ERROR;
                     }
-                    Value b = pop(vm);
-                    Value a = pop(vm);
-                    push(vm, concatenate(vm->collector, a, b));
+                    Value b = peek(vm, 0);
+                    Value a = peek(vm, 1);
+                    Value result = concatenate(vm->collector, a, b);
+                    pop(vm);
+                    pop(vm);
+                    push(vm, result);
                     break;
                 }
             case OP_PRINT:
@@ -485,7 +488,7 @@ int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     initialFrame->closure = newClosure(collector, function);
     initialFrame->pc = function->chunk->code;
     initialFrame->localStack = vm->stack;
-    mapPut(collector, &vm->globals, to_vobj(initialFrame->closure), to_vnihl());
+    mapPut(NULL, &vm->globals, to_vobj(initialFrame->closure), to_vnihl());
 
     vm->collector = collector;
     collector->vm = vm;
