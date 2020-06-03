@@ -37,6 +37,10 @@ static void collectGarbage(struct sCollector* collector) {
     }
     collector->worklistCount = 0;
 
+    // remove unmarked interned
+
+    removeUnmarkedKeys(collector, &collector->interned);
+
     // sweep
 
     Obj* previous = NULL;         

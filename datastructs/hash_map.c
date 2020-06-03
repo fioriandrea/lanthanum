@@ -95,8 +95,8 @@ int mapRemove(Collector* collector, HashMap* map, Value key) {
     while (current != NULL) {
         if (valuesEqual(current->key, key)) {
             previous->next = current->next;
-            if (current != dummy)
-                free(dummy);
+            map->entries[index] = dummy->next;
+            free(dummy);
             free_pointer(collector, current, sizeof(Entry));
             return 1;
         }
@@ -137,8 +137,6 @@ ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length) {
 }
 
 void markMap(Collector* collector, HashMap* map) {
-    if (map->count == 0)
-        return;
     for (int i = 0; i < map->capacity; i++) {
         Entry* entry = map->entries[i];
         if (entry != NULL) {
@@ -151,4 +149,25 @@ void markMap(Collector* collector, HashMap* map) {
             }
         }
     }
+}
+
+void removeUnmarkedKeys(Collector* collector, HashMap* map) {
+    Entry* dummy = (Entry*) malloc(sizeof(Entry));
+    for (int i = 0; i < map->capacity; i++) {
+        dummy->next = map->entries[i];
+        Entry* previous = dummy;
+        Entry* current = map->entries[i];
+        while (current != NULL) {
+            if (is_obj(current->key) && !as_obj(current->key)->marked) {
+                previous->next = current->next;
+                free_pointer(collector, current, sizeof(Entry));
+                current = previous->next;
+            } 
+            previous = previous->next;
+            if (current != NULL)
+                current = current->next;
+        }
+        map->entries[i] = dummy->next;
+    }
+    free(dummy);
 }
