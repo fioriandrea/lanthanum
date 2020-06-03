@@ -6,9 +6,11 @@
 #include "./commontypes.h"
 #include "./datastructs/value.h"
 #include "./datastructs/hash_map.h"
+#include "vm.h"
 
 struct sCollector {
     HashMap interned;
+    VM* vm;
     Obj* objects;
     size_t allocated;
 };

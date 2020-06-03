@@ -17,11 +17,13 @@ static void resetStack(VM* vm) {
     vm->sp = vm->stack;
 }
 
-void initVM(VM* vm) {
+void initVM(VM* vm, Collector* collector) {
     vm->fp = 0;
     resetStack(vm);
     initMap(&vm->globals);
     vm->openUpvalues = NULL;
+    vm->collector = collector;
+    collector->vm = vm;
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
@@ -471,13 +473,12 @@ static int vmRun(VM* vm) {
 }
 
 int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
-    initVM(vm);
+    initVM(vm, collector);
     CallFrame* initialFrame = &vm->frames[0];
     initialFrame->closure = newClosure(collector, function);
     initialFrame->pc = function->chunk->code;
     initialFrame->localStack = vm->stack;
 
-    vm->collector = collector;
     int result = vmRun(vm);
     freeVM(vm);
     return result;

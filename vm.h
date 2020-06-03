@@ -25,7 +25,7 @@ typedef struct {
     ObjUpvalue* openUpvalues;
 } VM;
 
-void initVM(VM* vm);
+void initVM(VM* vm, Collector* collector);
 int vmExecute(VM* vm, Collector* collector, ObjFunction* function);  
 void freeVM(VM* vm);
 

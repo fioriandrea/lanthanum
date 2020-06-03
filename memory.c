@@ -11,6 +11,7 @@ void* reallocate(Collector* collector, void* pointer, size_t oldsize, size_t new
 void initCollector(Collector* collector) {
     collector->allocated = 0;
     collector->objects = NULL;
+    collector->vm = NULL;
     initMap(&collector->interned);
 }
 
