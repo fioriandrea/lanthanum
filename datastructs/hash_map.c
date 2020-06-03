@@ -3,6 +3,7 @@
 #include "hash_map.h"
 #include "../memory.h"
 #include "../util.h"
+#include "../debug/debug_switches.h"
 
 #define LOAD_FACTOR 0.65 
 #define get_index(hash, capacity) ((hash) & ((capacity) - 1))
@@ -133,4 +134,21 @@ ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length) {
         head = head->next;
     }
     return NULL;
+}
+
+void markMap(HashMap* map) {
+    if (map->count == 0)
+        return;
+    for (int i = 0; i < map->capacity; i++) {
+        Entry* entry = map->entries[i];
+        if (entry != NULL) {
+            // mark inner linked list
+            while (entry != NULL) {
+                // mark each entry in linked list
+                markValue(entry->key);
+                markValue(entry->value);
+                entry = entry->next;
+            }
+        }
+    }
 }

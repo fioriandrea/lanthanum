@@ -6,6 +6,20 @@
 #include "../memory.h"
 #include "chunk.h"
 #include "value.h"
+#include "../debug/debug_switches.h"
+
+#ifdef TRACE_GC
+static inline char* string_type(ObjType type) {
+#define type_case(type) case type: return #type;
+    switch (type) {
+        type_case(OBJ_STRING)
+            type_case(OBJ_FUNCTION)
+            type_case(OBJ_CLOSURE)
+            type_case(OBJ_UPVALUE)
+    }
+#undef type_case
+}
+#endif
 
 #define allocate_obj(collector, type, typeenum) \
     ((type*) allocateObj(collector, typeenum, sizeof(type)))
@@ -15,7 +29,11 @@ Obj* allocateObj(Collector* collector, ObjType type, size_t size) {
     obj->type = type;
     obj->next = collector->objects;
     obj->hash = hash_pointer(obj);
+    obj->marked = 0;
     collector->objects = obj;
+#ifdef TRACE_GC
+    printf("(pointer %p) alloc %ld bytes for %s object type\n", (void*)obj, size, string_type(type));
+#endif
     return obj;
 }
 
@@ -80,6 +98,9 @@ void closeUpvalue(Collector* collector, ObjUpvalue* upvalue) {
 }
 
 void freeObject(Collector* collector, Obj* object) {
+#ifdef TRACE_GC
+    printf("(pointer %p) free %s object type\n", (void*)object, string_type(object->type));
+#endif
     switch (object->type) {                                 
         case OBJ_STRING: 
             {                                    
@@ -137,7 +158,19 @@ void printObj(Obj* obj) {
             }
         case OBJ_UPVALUE:
             {
-                printf("upvalue");
+                ObjUpvalue* upvalue = (ObjUpvalue*) obj;
+                printf("upvalue ");
+                printValue(*upvalue->value);
+                break;
             }
     }
+}
+
+void markObject(Obj* obj) {
+#ifdef TRACE_GC
+    printf("(pointer %p) mark ", (void*) obj);
+    printObj(obj);      
+    printf("\n");   
+#endif
+    obj->marked = 1;
 }

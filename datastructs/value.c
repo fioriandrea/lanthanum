@@ -98,3 +98,9 @@ void printValue(struct sValue val) {
             break;
     }
 }
+
+void markValue(struct sValue value) {
+    if (!is_obj(value))
+        return;
+    markObject(as_obj(value));
+}

@@ -73,5 +73,6 @@ int valuesConcatenable(struct sValue a, struct sValue b);
 int valuesNumbers(struct sValue a, struct sValue b); 
 struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b); 
 void printValue(struct sValue val);
+void markValue(struct sValue value);
 
 #endif

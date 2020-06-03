@@ -24,5 +24,6 @@ int mapGet(HashMap* map, Value key, Value* result);
 int mapRemove(Collector* collector, HashMap* map, Value key);
 ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length);
 void freeMap(Collector* collector, HashMap* map);
+void markMap(HashMap* map);
 
 #endif

@@ -17,13 +17,12 @@ static void resetStack(VM* vm) {
     vm->sp = vm->stack;
 }
 
-void initVM(VM* vm, Collector* collector) {
+void initVM(VM* vm) {
     vm->fp = 0;
     resetStack(vm);
     initMap(&vm->globals);
     vm->openUpvalues = NULL;
-    vm->collector = collector;
-    collector->vm = vm;
+    vm->collector = NULL;
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
@@ -113,6 +112,14 @@ static int vmRun(VM* vm) {
         }
         printf("]\n");
         printf("\n");
+#endif
+#ifdef TRACE_OPEN_UPVALUES
+        printf("OPEN UPVALUES\n");
+        for (ObjUpvalue* uv = vm->openUpvalues; uv != NULL; uv = uv->next) {
+            printObj((Obj*) uv);
+            printf("\n");
+        }
+        printf("END OPEN UPVALUES\n");
 #endif
         switch ((caseCode = read_byte())) {
             case OP_RET: 
@@ -473,12 +480,17 @@ static int vmRun(VM* vm) {
 }
 
 int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
-    initVM(vm, collector);
+    initVM(vm);
     CallFrame* initialFrame = &vm->frames[0];
     initialFrame->closure = newClosure(collector, function);
     initialFrame->pc = function->chunk->code;
     initialFrame->localStack = vm->stack;
+    mapPut(collector, &vm->globals, to_vobj(initialFrame->closure), to_vnihl());
 
+    vm->collector = collector;
+    collector->vm = vm;
+
+    printf("run\n");
     int result = vmRun(vm);
     freeVM(vm);
     return result;

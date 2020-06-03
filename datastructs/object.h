@@ -13,6 +13,7 @@ typedef enum {
 struct sObj {
     ObjType type;
     uint32_t hash;
+    int marked;
     struct sObj* next;
 };
 
@@ -56,5 +57,6 @@ ObjUpvalue* newUpvalue(Collector* collector, Value* value);
 void closeUpvalue(Collector* collector, ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
 void printObj(Obj* obj);
+void markObject(Obj* obj);
 
 #endif
