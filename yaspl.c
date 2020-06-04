@@ -2,15 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "datastructs/chunk.h"
-#include "./debug/asm_printer.h"
-#include "./debug/token_printer.h"
 #include "./memory.h"
 #include "vm.h"
-#include "./compilation_pipeline/lexer.h"
 #include "./compilation_pipeline/compiler.h"
-#include "./debug/map_printer.h"
-#include "./datastructs/hash_map.h"
 
 static char* readFile(const char* path) {
     FILE* file = fopen(path, "rb");
