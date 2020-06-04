@@ -8,7 +8,7 @@
 #include "./datastructs/hash_map.h"
 #include "vm.h"
 
-#define BASE_TRIGGER_GC_TRESHOLD (1024 * 1024)
+#define BASE_TRIGGER_GC_THRESHOLD (1024 * 1024)
 #define GC_TRESHOLD_FACTOR 2
 
 struct sCollector {
@@ -20,7 +20,7 @@ struct sCollector {
     int worklistCount;
     int worklistCapacity;
     size_t allocatedBytes;
-    size_t triggerGCTreshold;
+    size_t triggerGCThreshold;
 };
 
 #define compute_capacity(oldcap) \
