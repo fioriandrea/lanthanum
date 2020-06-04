@@ -66,9 +66,9 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
     string->chars = chars;
     string->length = length;
     ((Obj*) string)->hash = hash_string(chars, length);
-    collector->safeObj = ((Obj*) string);
+    pushSafe(collector, to_vobj(string));
     mapPut(collector, &collector->interned, to_vobj(string), to_vnihl());
-    collector->safeObj = NULL;
+    popSafe(collector);
     return string;
 }
 
@@ -77,9 +77,9 @@ ObjFunction* newFunction(Collector* collector) {
     function->name = NULL;
     function->arity = 0;
     function->upvalueCount = 0;
-    collector->safeObj = ((Obj*) function);
+    pushSafe(collector, to_vobj(function));
     function->chunk = allocate_pointer(collector, Chunk, sizeof(Chunk));
-    collector->safeObj = NULL;
+    popSafe(collector);
     initChunk(function->chunk);
     return function;
 }

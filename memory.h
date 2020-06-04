@@ -16,7 +16,6 @@ struct sCollector {
     Obj** worklist;
     int worklistCount;
     int worklistCapacity;
-    Obj* safeObj;
 };
 
 #define compute_capacity(oldcap) \
@@ -43,5 +42,7 @@ struct sCollector {
 void* reallocate(struct sCollector* collector, void* pointer, size_t oldsize, size_t newsize); 
 void initCollector(struct sCollector* collector); 
 void freeCollector(struct sCollector* collector); 
+void pushSafe(struct sCollector* collector, Value value);
+void popSafe(struct sCollector* collector);
 
 #endif

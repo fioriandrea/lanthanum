@@ -25,6 +25,16 @@ void initVM(VM* vm) {
     vm->collector = NULL;
 }
 
+void vmPush(VM* vm, Value val) {
+    *vm->sp = val;
+    vm->sp++;
+}
+
+Value vmPop(VM* vm) {
+    vm->sp--;
+    return *vm->sp;
+}
+
 static void runtimeError(VM* vm, char* format, ...) {
     int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].closure->function->chunk->code - 1; 
     int line = lineArrayGet(&vm->frames[vm->fp - 1].closure->function->chunk->lines, instruction);         
@@ -40,16 +50,6 @@ static void runtimeError(VM* vm, char* format, ...) {
 
 static Value peek(VM* vm, int depth) {
     return vm->sp[-(depth + 1)];
-}
-
-static void push(VM* vm, Value val) {
-    *vm->sp = val;
-    vm->sp++;
-}
-
-static Value pop(VM* vm) {
-    vm->sp--;
-    return *vm->sp;
 }
 
 static void closeOnStackUpvalue(VM* vm, Value* value) {
@@ -92,9 +92,9 @@ static int vmRun(VM* vm) {
             runtimeError(vm, "operand must be numbers"); \
             return RUNTIME_ERROR; \
         } \
-        double b = as_cnumber(pop(vm)); \
-        double a = as_cnumber(pop(vm)); \
-        push(vm, destination(a operator b)); \
+        double b = as_cnumber(vmPop(vm)); \
+        double a = as_cnumber(vmPop(vm)); \
+        vmPush(vm, destination(a operator b)); \
     } while (0)
 
 #ifdef TRACE_EXEC
@@ -124,7 +124,7 @@ static int vmRun(VM* vm) {
         switch ((caseCode = read_byte())) {
             case OP_RET: 
                 {
-                    Value retVal = pop(vm);
+                    Value retVal = vmPop(vm);
                     vm->fp--;
                     if (vm->fp == 0)
                         return RUNTIME_OK;
@@ -134,7 +134,7 @@ static int vmRun(VM* vm) {
                         vm->sp--;
                     }
                     currentFrame = &vm->frames[vm->fp - 1];
-                    push(vm, retVal);
+                    vmPush(vm, retVal);
                     break;
                 }
             case OP_CALL:
@@ -171,7 +171,7 @@ static int vmRun(VM* vm) {
                     Value funVal = read_constant_long_if(OP_CLOSURE_LONG);
                     ObjFunction* function = as_function(funVal);
                     ObjClosure* closure = newClosure(vm->collector, function);
-                    push(vm, to_vobj(closure));
+                    vmPush(vm, to_vobj(closure));
                     for (int i = 0; i < closure->upvalueCount; i++) {
                         uint8_t ownedAbove = read_byte();
                         uint8_t index = read_byte();
@@ -200,7 +200,7 @@ static int vmRun(VM* vm) {
             case OP_UPVALUE_GET_LONG:
                 {
                     uint16_t index = read_long_if(OP_UPVALUE_GET_LONG);
-                    push(vm, *currentFrame->closure->upvalues[index]->value);
+                    vmPush(vm, *currentFrame->closure->upvalues[index]->value);
                     break;
                 }
             case OP_UPVALUE_SET:
@@ -214,7 +214,7 @@ static int vmRun(VM* vm) {
             case OP_CONST_LONG:
                 {
                     Value constant = read_constant_long_if(OP_CONST_LONG);
-                    push(vm, constant);
+                    vmPush(vm, constant);
                     break;
                 }
             case OP_GLOBAL_DECL:
@@ -222,7 +222,7 @@ static int vmRun(VM* vm) {
                 {
                     Value name = read_constant_long_if(OP_GLOBAL_DECL_LONG);
                     mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
-                    pop(vm); 
+                    vmPop(vm); 
                     break;
                 }
             case OP_GLOBAL_GET:
@@ -235,7 +235,7 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "cannot get value of undefined global variable");
                         return RUNTIME_ERROR;
                     } else {
-                        push(vm, value);
+                        vmPush(vm, value);
                     }
                     break;
                 }
@@ -256,7 +256,7 @@ static int vmRun(VM* vm) {
             case OP_LOCAL_GET_LONG:
                 {
                     uint16_t argument = read_long_if(OP_LOCAL_GET_LONG);
-                    push(vm, currentFrame->localStack[argument]);
+                    vmPush(vm, currentFrame->localStack[argument]);
                     break;
                 }
             case OP_LOCAL_SET:
@@ -302,9 +302,9 @@ static int vmRun(VM* vm) {
                     Value a = peek(vm, 1);
                     int bb = isTruthy(b);
                     int ba = isTruthy(a);
-                    pop(vm);
-                    pop(vm);
-                    push(vm, to_vbool(!(ba == bb)));
+                    vmPop(vm);
+                    vmPop(vm);
+                    vmPush(vm, to_vbool(!(ba == bb)));
                     break;
                 }
             case OP_NEGATE:
@@ -313,8 +313,8 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "only numbers can be negated");
                         return RUNTIME_ERROR;
                     }
-                    Value a = pop(vm);
-                    push(vm, to_vnumber(-as_cnumber(a)));
+                    Value a = vmPop(vm);
+                    vmPush(vm, to_vnumber(-as_cnumber(a)));
                     break;
                 }
             case OP_ADD:
@@ -342,9 +342,9 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "cannot divide by zero (/ 0)");
                         return RUNTIME_ERROR;
                     }
-                    double b = as_cnumber(pop(vm)); 
-                    double a = as_cnumber(pop(vm)); 
-                    push(vm, to_vnumber(a / b));
+                    double b = as_cnumber(vmPop(vm)); 
+                    double a = as_cnumber(vmPop(vm)); 
+                    vmPush(vm, to_vnumber(a / b));
                     break;
                 }
             case OP_MOD:
@@ -362,9 +362,9 @@ static int vmRun(VM* vm) {
                         return RUNTIME_ERROR;
                     }
 
-                    double b = as_cnumber(pop(vm)); 
-                    double a = as_cnumber(pop(vm)); 
-                    push(vm, to_vnumber(((long) a) % ((long) b)));
+                    double b = as_cnumber(vmPop(vm)); 
+                    double a = as_cnumber(vmPop(vm)); 
+                    vmPush(vm, to_vnumber(((long) a) % ((long) b)));
                     break;
                 }
             case OP_POW:
@@ -373,56 +373,56 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "operands must be numbers");
                         return RUNTIME_ERROR;
                     }
-                    double b = as_cnumber(pop(vm)); 
-                    double a = as_cnumber(pop(vm)); 
-                    push(vm, to_vnumber(pow(a, b)));
+                    double b = as_cnumber(vmPop(vm)); 
+                    double a = as_cnumber(vmPop(vm)); 
+                    vmPush(vm, to_vnumber(pow(a, b)));
                     break;
                 }
             case OP_CONST_NIHL:
                 {
-                    push(vm, to_vnihl());
+                    vmPush(vm, to_vnihl());
                     break;
                 }
             case OP_CONST_TRUE:
                 {
-                    push(vm, to_vbool(1));
+                    vmPush(vm, to_vbool(1));
                     break;
                 }
             case OP_CONST_FALSE:
                 {
-                    push(vm, to_vbool(0));
+                    vmPush(vm, to_vbool(0));
                     break;
                 }
             case OP_NOT:
                 {
-                    Value val = pop(vm);
-                    push(vm, to_vbool(!isTruthy(val)));
+                    Value val = vmPop(vm);
+                    vmPush(vm, to_vbool(!isTruthy(val)));
                     break;
                 }
             case OP_POP:
                 {
-                    pop(vm);
+                    vmPop(vm);
                     break;
                 }
             case OP_CLOSE_UPVALUE:
                 {
                     Value* value = vm->sp - 1; 
                     closeOnStackUpvalue(vm, value);
-                    pop(vm);
+                    vmPop(vm);
                     break;
                 }
             case OP_EQUAL:
                 {
-                    Value b = pop(vm);
-                    Value a = pop(vm);
-                    push(vm, to_vbool(valuesEqual(a, b)));
+                    Value b = vmPop(vm);
+                    Value a = vmPop(vm);
+                    vmPush(vm, to_vbool(valuesEqual(a, b)));
                     break;
                 }
             case OP_NOT_EQUAL:
                 {
-                    Value b = pop(vm);
-                    Value a = pop(vm);
-                    push(vm, to_vbool(!valuesEqual(a, b)));
+                    Value b = vmPop(vm);
+                    Value a = vmPop(vm);
+                    vmPush(vm, to_vbool(!valuesEqual(a, b)));
                     break;
                 }
             case OP_LESS:
@@ -454,9 +454,9 @@ static int vmRun(VM* vm) {
                     Value b = peek(vm, 0);
                     Value a = peek(vm, 1);
                     Value result = concatenate(vm->collector, a, b);
-                    pop(vm);
-                    pop(vm);
-                    push(vm, result);
+                    vmPop(vm);
+                    vmPop(vm);
+                    vmPush(vm, result);
                     break;
                 }
             case OP_PRINT:
@@ -464,7 +464,7 @@ static int vmRun(VM* vm) {
                     Value val = peek(vm, 0);
                     printValue(val);
                     printf("\n");
-                    pop(vm);
+                    vmPop(vm);
                     break;
                 }
             default:

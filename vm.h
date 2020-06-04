@@ -28,5 +28,7 @@ typedef struct {
 void initVM(VM* vm);
 int vmExecute(VM* vm, Collector* collector, ObjFunction* function);  
 void freeVM(VM* vm);
+void vmPush(VM* vm, Value val);
+Value vmPop(VM* vm);
 
 #endif

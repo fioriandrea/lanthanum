@@ -9,10 +9,6 @@ static void collectGarbage(struct sCollector* collector) {
     printf("START GC\n");
 #endif
 
-    // mark safeValue
-    if (collector->safeObj != NULL)
-        markObject(collector, collector->safeObj);
-
     // mark stack
     for (Value* stackValue = collector->vm->stack; stackValue < collector->vm->sp; stackValue++) {
         markValue(collector, *stackValue);
@@ -87,7 +83,6 @@ void initCollector(Collector* collector) {
     collector->worklist = NULL;
     collector->worklistCount = 0;
     collector->worklistCapacity = 0;
-    collector->safeObj = NULL;
     initMap(&collector->interned);
 }
 
@@ -100,4 +95,13 @@ void freeCollector(Collector* collector) {
     }
     if (collector->worklist != NULL)
         free(collector->worklist);
+}
+
+void pushSafe(struct sCollector* collector, Value value) {
+    if (collector->vm != NULL)
+        vmPush(collector->vm, value);
+}
+void popSafe(struct sCollector* collector) {
+    if (collector->vm != NULL)
+        vmPop(collector->vm);
 }
