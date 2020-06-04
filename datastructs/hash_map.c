@@ -110,8 +110,11 @@ int mapRemove(Collector* collector, HashMap* map, Value key) {
 
 void freeMap(Collector* collector, HashMap* map) {
     for (int i = 0; i < map->capacity; i++) {
-        if (map->entries[i] != NULL) {
-            free_pointer(collector, map->entries[i], sizeof(Entry));
+        Entry* entry = map->entries[i];
+        while (entry != NULL) {
+            Entry* toFree = entry;
+            entry = entry->next;
+            free_pointer(collector, toFree, sizeof(Entry));
         }
     }
     free_array(collector, Entry*, map->entries, map->capacity);
