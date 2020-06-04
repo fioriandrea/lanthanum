@@ -8,6 +8,9 @@
 #include "./datastructs/hash_map.h"
 #include "vm.h"
 
+#define BASE_TRIGGER_GC_TRESHOLD (1024 * 1024)
+#define GC_TRESHOLD_FACTOR 2
+
 struct sCollector {
     HashMap interned;
     VM* vm;
@@ -16,6 +19,8 @@ struct sCollector {
     Obj** worklist;
     int worklistCount;
     int worklistCapacity;
+    size_t allocatedBytes;
+    size_t triggerGCTreshold;
 };
 
 #define compute_capacity(oldcap) \

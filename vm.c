@@ -493,7 +493,6 @@ int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     vm->collector = collector;
     collector->vm = vm;
 
-    printf("run\n");
     int result = vmRun(vm);
     freeVM(vm);
     return result;

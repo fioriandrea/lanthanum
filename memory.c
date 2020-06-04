@@ -9,6 +9,8 @@ static void collectGarbage(struct sCollector* collector) {
     printf("START GC\n");
 #endif
 
+    size_t oldAllocatedBytes = collector->allocatedBytes;
+
     // mark stack
     for (Value* stackValue = collector->vm->stack; stackValue < collector->vm->sp; stackValue++) {
         markValue(collector, *stackValue);
@@ -58,16 +60,27 @@ static void collectGarbage(struct sCollector* collector) {
             object = object->next;
         }
     }
+
+    // update treshold
+    
+    collector->triggerGCTreshold = (oldAllocatedBytes - collector->allocatedBytes) * GC_TRESHOLD_FACTOR;
 #ifdef TRACE_GC
     printf("END GC\n");
 #endif 
 }
 
 void* reallocate(Collector* collector, void* pointer, size_t oldsize, size_t newsize) {
-    if (collector != NULL && collector->vm != NULL && oldsize < newsize) {
-#ifdef STRESS_GC
-        collectGarbage(collector);
+    if (collector != NULL) {
+        collector->allocatedBytes += newsize - oldsize;
+        if (collector->vm != NULL && oldsize < newsize) {
+#ifndef STRESS_GC
+            if (collector->allocatedBytes >= collector->triggerGCTreshold) {
+                collectGarbage(collector);
+            }
+#else
+            collectGarbage(collector);
 #endif
+        }
     }
     if (newsize == 0) {
         free(pointer);
@@ -83,6 +96,8 @@ void initCollector(Collector* collector) {
     collector->worklist = NULL;
     collector->worklistCount = 0;
     collector->worklistCapacity = 0;
+    collector->allocatedBytes = 0;
+    collector->triggerGCTreshold = BASE_TRIGGER_GC_TRESHOLD;
     initMap(&collector->interned);
 }
 
