@@ -79,10 +79,12 @@ void arrayPush(Collector* collector, ObjArray* array, Value* value) {
 
 static ObjArray* concatenateArrays(Collector* collector, ObjArray* a, ObjArray* b) {
     ObjArray* newArr = newArray(collector);
-    for (int i = 0; i < b->values->count; i++)
-        arrayPush(collector, newArr, &b->values->values[i]);
-    for (int i = 0; i < a->values->count; i++)
+    for (int i = 0; i < a->values->count; i++) {
         arrayPush(collector, newArr, &a->values->values[i]);
+    }
+    for (int i = 0; i < b->values->count; i++) {
+        arrayPush(collector, newArr, &b->values->values[i]);
+    }
     return newArr;
 }
 
@@ -284,17 +286,17 @@ void printObj(Obj* obj) {
             {
                 ObjArray* array = (ObjArray*) obj;
                 printf("[");
-                if (array->values->count > 0) {
-                    int index = array->values->count - 1;
-                    Value val = array->values->values[index];
+                for (int i = 0; i < array->values->count - 1; i++) {
+                    Value val = array->values->values[i];
                     if (is_obj(val) && as_obj(val) == obj)
                         printf("<self>");
                     else
                         printValue(val);
+                    printf(" ,");
                 }
-                for (int i = array->values->count - 2; i >= 0; i--) {
-                    printf(", ");
-                    Value val = array->values->values[i];
+                if (array->values->count > 0) {
+                    int index = array->values->count - 1;
+                    Value val = array->values->values[index];
                     if (is_obj(val) && as_obj(val) == obj)
                         printf("<self>");
                     else
@@ -379,7 +381,7 @@ static Value* indexArray(Collector* collector, ObjArray* array, int index) {
     int count = array->values->count;
     if (index >= count)
         return NULL;
-    return &array->values->values[count - index - 1];
+    return &array->values->values[index];
 }
 
 static ObjString* indexString(Collector* collector, ObjString* string, int index) {

@@ -57,7 +57,6 @@ typedef struct {
     Value* payload;
 } ObjError;
 
-// arrays have always their elements in reverse
 typedef struct {
     Obj obj;
     ValueArray* values;

@@ -229,9 +229,11 @@ static int vmRun(VM* vm) {
                 {
                     uint16_t len = read_long_if(OP_ARRAY_LONG);
                     ObjArray* array = newArray(vm->collector);
+                    vm->sp = vm->sp - len;
+                    Value* value = vm->sp;
                     while (len > 0) {
-                        arrayPush(vm->collector, array, vm->sp - 1);
-                        vmPop(vm);
+                        arrayPush(vm->collector, array, value);
+                        value++;
                         len--;
                     }
                     vmPush(vm, to_vobj(array));
