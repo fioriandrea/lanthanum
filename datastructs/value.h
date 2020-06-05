@@ -38,6 +38,7 @@ struct sValue {
 #define is_function(value) isObjType(value, OBJ_FUNCTION)
 #define is_closure(value) isObjType(value, OBJ_CLOSURE)
 #define is_upvalue(value) isObjType(value, OBJ_UPVALUE)
+#define is_array(value) isObjType(value, OBJ_ARRAY)
 #define is_error(value) isObjType(value, OBJ_ERROR)
 
 #define as_function(value) ((ObjFunction*) as_obj(value))
@@ -45,15 +46,16 @@ struct sValue {
 #define as_upvalue(value) ((ObjUpvalue*) as_obj(value))
 #define as_error(value) ((ObjError*) as_obj(value))
 #define as_string(value) ((ObjString*) as_obj(value))
+#define as_array(value) ((ObjArray*) as_obj(value))
 #define as_cstring(value) (as_string(value)->chars)
 
 int isObjType(struct sValue value, ObjType type);
 
-typedef struct {
+struct sValueArray {
     int count;
     int capacity;
     struct sValue* values;
-} ValueArray;
+};
 
 #define hash_bool(b) hash_int(as_cbool(b) + 31)
 #define hash_nihl hash_int(42)
@@ -66,8 +68,8 @@ static inline uint32_t get_value_hash(struct sValue val) {
 }
 
 void initValueArray(ValueArray* valarray);
-int writeValueArray(Collector* collector, ValueArray* valarray, struct sValue value);
-void freeValueArray(Collector* collector, ValueArray* valarray);
+int writeValueArray(Collector* collector, struct sValueArray* valarray, struct sValue value);
+void freeValueArray(Collector* collector, struct sValueArray* valarray);
 int isTruthy(struct sValue val); 
 int valueInteger(struct sValue value);
 int valuesIntegers(struct sValue a, struct sValue b); 
@@ -76,7 +78,7 @@ int valuesConcatenable(struct sValue a, struct sValue b);
 int valuesNumbers(struct sValue a, struct sValue b); 
 struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b); 
 void printValue(struct sValue val);
-void markValueArray(Collector* collector, ValueArray* values);
+void markValueArray(Collector* collector, struct sValueArray* values);
 void markValue(Collector* collector, struct sValue value);
 Value indexValue(Collector* collector, struct sValue arrayLike, struct sValue index);
 

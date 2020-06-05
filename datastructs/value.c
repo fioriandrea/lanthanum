@@ -8,13 +8,13 @@ int isObjType(struct sValue value, ObjType type) {
     return is_obj(value) && as_obj(value)->type == type;
 }
 
-void initValueArray(ValueArray* valarray) {
+void initValueArray(struct sValueArray* valarray) {
     valarray->count = 0;
     valarray->capacity = 0;
     valarray->values = NULL;
 }
 
-int writeValueArray(Collector* collector, ValueArray* valarray, struct sValue value) {
+int writeValueArray(Collector* collector, struct sValueArray* valarray, struct sValue value) {
     if (valarray->count + 1 >= valarray->capacity) {
         int newcap = compute_capacity(valarray->capacity);
         valarray->values = grow_array(collector, struct sValue, valarray->values, valarray->capacity, newcap);
@@ -24,7 +24,7 @@ int writeValueArray(Collector* collector, ValueArray* valarray, struct sValue va
     return valarray->count - 1;
 }
 
-void freeValueArray(Collector* collector, ValueArray* valarray) {
+void freeValueArray(Collector* collector, struct sValueArray* valarray) {
     free_array(collector, uint8_t, valarray->values, valarray->capacity);
     initValueArray(valarray);
 }
@@ -73,10 +73,10 @@ int valuesNumbers(struct sValue a, struct sValue b) {
 }
 
 struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b) {
-    ObjString* sa = as_string(a);
-    ObjString* sb = as_string(b);
-
-    return to_vobj(concatenateStrings(collector, sa, sb));
+    if (!is_obj(a) || !is_obj(b)) {
+        return to_vobj(newError(collector, "cannot concatenate non objects", NULL));
+    }
+    return to_vobj(concatenateObjects(collector, as_obj(a), as_obj(b)));
 }
 
 void printValue(struct sValue val) {
@@ -102,7 +102,7 @@ void markValue(Collector* collector, struct sValue value) {
     markObject(collector, as_obj(value));
 }
 
-void markValueArray(Collector* collector, ValueArray* values) {
+void markValueArray(Collector* collector, struct sValueArray* values) {
     for (int i = 0; i < values->count; i++)
         markValue(collector, values->values[i]);
 }

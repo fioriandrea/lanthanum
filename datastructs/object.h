@@ -8,6 +8,7 @@ typedef enum {
     OBJ_FUNCTION,
     OBJ_CLOSURE,
     OBJ_UPVALUE,
+    OBJ_ARRAY,
     OBJ_ERROR,
 } ObjType;
 
@@ -56,12 +57,17 @@ typedef struct {
     Value* payload;
 } ObjError;
 
+typedef struct {
+    Obj obj;
+    ValueArray* values;
+} ObjArray;
+
 ObjString* copyString(Collector* collector, char* chars, int length);
 ObjString* takeString(Collector* collector, char* chars, int length);
-ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb);
 ObjFunction* newFunction(Collector* collector);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
+ObjArray* newArray(Collector* collector, ValueArray* values);
 ObjError* newError(Collector* collector, char* first, ...);
 void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
@@ -69,5 +75,6 @@ void printObj(Obj* obj);
 void markObject(Collector* collector, Obj* obj);
 void blackenObject(Collector* collector, Obj* obj);
 void indexObject(Collector* collector, Obj* array, Value* index, Value* result);
+Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
 
 #endif

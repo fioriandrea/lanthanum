@@ -461,13 +461,13 @@ static int vmRun(VM* vm) {
                 }
             case OP_CONCAT:
                 {
-                    if (!valuesConcatenable(vmPeek(vm, 0), vmPeek(vm, 1))) {
-                        runtimeError(vm, "values must be strings");
-                        return RUNTIME_ERROR;
-                    }
                     Value b = vmPeek(vm, 0);
                     Value a = vmPeek(vm, 1);
                     Value result = concatenate(vm->collector, a, b);
+                    if (is_error(result)) {
+                        runtimeError(vm, as_error(result)->message->chars);
+                        return RUNTIME_ERROR;
+                    }
                     vmPop(vm);
                     vmPop(vm);
                     vmPush(vm, result);

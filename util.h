@@ -47,6 +47,16 @@ static inline uint32_t float_to_bits(float v) {
 
 static inline int is_integer(double n) {
     return (int) n == n;
+} 
+
+static uint32_t nearest_bigger_pow_of_two(uint32_t n) {
+    if ((n & (n - 1)) == 0)
+        return n;
+
+    while ((n & (n - 1)) != 0) {
+        n = n & (n - 1);
+    }
+    return n << 1;   
 }
 
 #endif

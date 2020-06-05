@@ -73,13 +73,46 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
     return string;
 }
 
-ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb) {
+static ObjArray* concatenateArrays(Collector* collector, ObjArray* a, ObjArray* b) {
+    ValueArray* newValues = allocate_pointer(collector, ValueArray, sizeof(ValueArray));
+    initValueArray(newValues);
+    uint32_t newSize = nearest_bigger_pow_of_two(a->values->count + b->values->count);
+    if (newSize != 0) {
+        newValues->values = allocate_block(collector, Value, newSize);
+    }
+    for (int i = 0; i < a->values->count; i++) {
+        writeValueArray(collector, newValues, a->values->values[i]);
+    }
+    for (int i = 0; i < b->values->count; i++) {
+        writeValueArray(collector, newValues, b->values->values[i]);
+    }
+    ObjArray* newArray = allocate_obj(collector, ObjArray, OBJ_ARRAY);
+    newArray->values = newValues;
+    return newArray;
+}
+
+static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb) {
     int length = sa->length + sb->length;
     char* chars = allocate_block(collector, char, length);
     memcpy(chars, sa->chars, sa->length);
     memcpy(chars + sa->length, sb->chars, sb->length);
     chars[length] = '\0'; 
     return takeString(collector, chars, length);
+}
+
+
+Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b) {
+    if (a->type != b->type) {
+        return (Obj*) newError(collector, "cannot concatenate objects of different types", NULL);
+    }
+    switch (a->type) {
+        case OBJ_STRING:
+            return (Obj*) concatenateStrings(collector, (ObjString*) a, (ObjString*) b);
+        case OBJ_ARRAY:
+            return (Obj*) concatenateArrays(collector, (ObjArray*) a, (ObjArray*) b);
+        default:
+            return (Obj*) newError(collector, "cannot concatenate objects that are not strings or arrays", NULL);
+    }
 }
 
 ObjFunction* newFunction(Collector* collector) {
@@ -111,6 +144,12 @@ ObjUpvalue* newUpvalue(Collector* collector, Value* value) {
     upvalue->next = NULL;
     upvalue->closed = NULL;
     return upvalue;
+}
+
+ObjArray* newArray(Collector* collector, ValueArray* values) {
+    ObjArray* array = allocate_obj(collector, ObjArray, OBJ_ARRAY);
+    array->values = values;
+    return array;
 }
 
 ObjError* newError(Collector* collector, char* first, ...) {

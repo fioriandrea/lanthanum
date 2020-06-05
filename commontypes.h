@@ -7,5 +7,6 @@
 typedef struct sCollector Collector;
 typedef struct sChunk Chunk;
 typedef struct sValue Value;
+typedef struct sValueArray ValueArray;
 
 #endif
