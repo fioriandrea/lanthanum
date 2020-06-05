@@ -426,63 +426,66 @@ void markObject(Collector* collector, Obj* obj) {
     collector->worklist[collector->worklistCount++] = obj;
 }
 
-static Value* indexGetArray(Collector* collector, ObjArray* array, int index) {
+static int indexGetArray(Collector* collector, ObjArray* array, Value* index, Value* result) {
+    if (!valueInteger(*index)) {
+        *result = to_vobj(newError(collector, "invalid index for array", NULL));
+        return 0;
+    }
+    int cindex = (int) as_cnumber(*index);
     int count = array->values->count;
-    if (index >= count)
-        return NULL;
-    return &array->values->values[index];
+    if (cindex < 0 || cindex >= count) {
+        *result = to_vobj(newError(collector, "array index out of bounds", NULL));
+        return 0;
+    }
+    *result = array->values->values[cindex];
+    return 1;
 }
 
-static Value* indexSetArray(Collector* collector, ObjArray* array, int index, Value* value) {
+static int indexSetArray(Collector* collector, ObjArray* array, Value* index, Value* value, Value* result) {
+    if (!valueInteger(*index)) {
+        *result = to_vobj(newError(collector, "invalid index for array", NULL));
+        return 0;
+    }
+    int cindex = (int) as_cnumber(*index);
     int count = array->values->count;
-    if (index >= count)
-        return NULL;
-    array->values->values[index] = *value;
-    return &array->values->values[index];
+    if (cindex < 0 || cindex >= count) {
+        *result = to_vobj(newError(collector, "array index out of bounds", NULL));
+        return 0;
+    }
+    array->values->values[cindex] = *value;
+    return 1;
 }
 
-static ObjString* indexGetString(Collector* collector, ObjString* string, int index) {
-    if (index > string->length)
-        return NULL;
-    return copyString(collector, string->chars + index, 1);
+static int indexGetString(Collector* collector, ObjString* string, Value* index, Value* result) {
+    if (!valueInteger(*index)) {
+        *result = to_vobj(newError(collector, "invalid index for string", NULL));
+        return 0;
+    }
+    int cindex = (int) as_cnumber(*index);
+    if (cindex < 0 || cindex >= string->length) {
+        *result = to_vobj(newError(collector, "string index out of bounds", NULL));
+        return 0;
+    }
+    *result = to_vobj(copyString(collector, string->chars + cindex, 1));
+    return 1;
 }
 
 void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result) {
     switch (array->type) {
         case OBJ_STRING:
             {
-                if (!valueInteger(*index)) {
-                    *result = to_vobj(newError(collector, "invalid index for string", NULL));
-                    return;
-                }
-                ObjString* charAtIndex = 
-                    indexGetString(collector, (ObjString*) array, (int) as_cnumber(*index));
-                if (charAtIndex == NULL) {
-                    *result = to_vobj(newError(collector, "string index out of bounds", NULL));
-                    return;
-                }
-                *result = to_vobj(charAtIndex);
-                return;
+                indexGetString(collector, (ObjString*) array, index, result);
+                break;
             }
         case OBJ_ARRAY:
             {
-                if (!valueInteger(*index)) {
-                    *result = to_vobj(newError(collector, "invalid index for array", NULL));
-                    return;
-                }
-                Value* valueAtIndex = 
-                    indexGetArray(collector, (ObjArray*) array, (int) as_cnumber(*index));
-                if (valueAtIndex == NULL) {
-                    *result = to_vobj(newError(collector, "array index out of bounds", NULL));
-                    return;
-                }
-                *result = *valueAtIndex;
-                return;
+                indexGetArray(collector, (ObjArray*) array, index, result);
+                break;
             }
         case OBJ_DICT:
             {
                 dictGet((ObjDict*) array, index, result);
-                return;
+                break;;
             }
         default:
             {
@@ -496,24 +499,14 @@ void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value
     switch (array->type) {
         case OBJ_ARRAY:
             {
-                if (!valueInteger(*index)) {
-                    *result = to_vobj(newError(collector, "invalid index for array", NULL));
-                    return;
-                }
-                Value* valueAtIndex = 
-                    indexSetArray(collector, (ObjArray*) array, (int) as_cnumber(*index), value);
-                if (valueAtIndex == NULL) {
-                    *result = to_vobj(newError(collector, "array index out of bounds", NULL));
-                    return;
-                }
-                *result = *valueAtIndex;
-                return;
+                indexSetArray(collector, (ObjArray*) array, index, value, result);
+                break;
             }
         case OBJ_DICT:
             {
                 dictPut(collector, (ObjDict*) array, index, value);
                 *result = *value;
-                return;
+                break;
             }
         default:
             {
