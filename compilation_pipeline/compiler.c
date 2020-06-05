@@ -291,6 +291,10 @@ static void emitArrayLiteral(Compiler* compiler, int count) {
     writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_ARRAY_LONG, OP_ARRAY, (uint16_t) count, compiler->previous.line);
 }
 
+static void emitDictionaryLiteral(Compiler* compiler, int count) {
+    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_DICT_LONG, OP_DICT, (uint16_t) count, compiler->previous.line);
+}
+
 static void emitBinary(Compiler* compiler, TokenType operator) {
     switch (operator) {
         case TOK_PLUS: emitByte(compiler, OP_ADD); break;
@@ -448,6 +452,23 @@ static void arrayExpression(Compiler* compiler) {
     emitArrayLiteral(compiler, count);
 }
 
+static void dictionaryExpression(Compiler* compiler) {
+    advance(compiler);
+    int count = 0;
+    if (eat(compiler, TOK_RIGHT_CURLY_BRACKET)) {
+        emitDictionaryLiteral(compiler, count);
+        return;
+    }
+    do {
+        nonCommaExpression(compiler);
+        eatError(compiler, TOK_ARROW, "expected \"=>\" after dictionary key");
+        nonCommaExpression(compiler);
+        count++;
+    } while (eat(compiler, TOK_COMMA));
+    eatError(compiler, TOK_RIGHT_CURLY_BRACKET, "expected \"}\" after dictionary literal");
+    emitDictionaryLiteral(compiler, count);
+}
+
 static void primaryExpression(Compiler* compiler, int canAssign) {
     switch (currentTokenType(compiler)) {
         case TOK_LEFT_ROUND_BRACKET:
@@ -455,6 +476,9 @@ static void primaryExpression(Compiler* compiler, int canAssign) {
             break;
         case TOK_LEFT_SQUARE_BRACKET:
             arrayExpression(compiler);
+            break;
+        case TOK_LEFT_CURLY_BRACKET:
+            dictionaryExpression(compiler);
             break;
         default:
             basicExpression(compiler, canAssign);

@@ -230,13 +230,28 @@ static int vmRun(VM* vm) {
                     uint16_t len = read_long_if(OP_ARRAY_LONG);
                     ObjArray* array = newArray(vm->collector);
                     vm->sp = vm->sp - len;
-                    Value* value = vm->sp;
+                    Value* tmpsp = vm->sp;
                     while (len > 0) {
-                        arrayPush(vm->collector, array, value);
-                        value++;
+                        arrayPush(vm->collector, array, tmpsp++);
                         len--;
                     }
                     vmPush(vm, to_vobj(array));
+                    break;
+                }
+            case OP_DICT:
+            case OP_DICT_LONG:
+                {
+                    uint16_t len = read_long_if(OP_ARRAY_LONG);
+                    ObjDict* dict = newDict(vm->collector);
+                    vm->sp = vm->sp - len * 2;
+                    Value* tmpsp = vm->sp;
+                    while (len > 0) {
+                        Value* key = tmpsp++;
+                        Value* value = tmpsp++;
+                        dictPut(vm->collector, dict, key, value);
+                        len--;
+                    }
+                    vmPush(vm, to_vobj(dict));
                     break;
                 }
             case OP_CONST: 

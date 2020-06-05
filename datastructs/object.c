@@ -159,7 +159,7 @@ ObjArray* newArray(Collector* collector) {
     return array;
 }
 
-ObjDict* newMap(Collector* collector) {
+ObjDict* newDict(Collector* collector) {
     HashMap* map = allocate_pointer(collector, HashMap, sizeof(HashMap));
     initMap(map);
     ObjDict* dict = allocate_obj(collector, ObjDict, OBJ_DICT);
@@ -267,6 +267,13 @@ void freeObject(Collector* collector, Obj* object) {
     }
 }
 
+static void printOrSelf(Obj* container, Value value) {
+    if (is_obj(value) && as_obj(value) == container)
+        printf("<self>");
+    else
+        printValue(value);
+}
+
 void printObj(Obj* obj) {
     switch (obj->type) {
         case OBJ_STRING:
@@ -312,21 +319,33 @@ void printObj(Obj* obj) {
                 printf("[");
                 for (int i = 0; i < array->values->count - 1; i++) {
                     Value val = array->values->values[i];
-                    if (is_obj(val) && as_obj(val) == obj)
-                        printf("<self>");
-                    else
-                        printValue(val);
+                    printOrSelf(obj, val);
                     printf(" ,");
                 }
                 if (array->values->count > 0) {
                     int index = array->values->count - 1;
                     Value val = array->values->values[index];
-                    if (is_obj(val) && as_obj(val) == obj)
-                        printf("<self>");
-                    else
-                        printValue(val);
+                    printOrSelf(obj, val);
                 }
                 printf("]");
+                break;
+            }
+        case OBJ_DICT:
+            {
+                ObjDict* dict = (ObjDict*) obj;
+                HashMap* map = dict->map;
+                printf("{");
+                for (int i = 0; i < map->capacity; i++) {
+                    Entry* entry = map->entries[i];
+                    while (entry != NULL) {
+                        printOrSelf(obj, entry->key);
+                        printf(" => ");
+                        printOrSelf(obj, entry->value);
+                        printf(",");
+                        entry = entry->next;
+                    }
+                }
+                printf("}");
                 break;
             }
     }

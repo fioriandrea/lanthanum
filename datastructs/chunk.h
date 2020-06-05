@@ -55,6 +55,8 @@ typedef enum {
     OP_CLOSE_UPVALUE,
     OP_ARRAY,
     OP_ARRAY_LONG,
+    OP_DICT,
+    OP_DICT_LONG,
 } OpCode;
 
 struct sChunk {
