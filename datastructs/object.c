@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "object.h"
 #include "../util.h"
@@ -72,6 +73,15 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
     return string;
 }
 
+ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb) {
+    int length = sa->length + sb->length;
+    char* chars = allocate_block(collector, char, length);
+    memcpy(chars, sa->chars, sa->length);
+    memcpy(chars + sa->length, sb->chars, sb->length);
+    chars[length] = '\0'; 
+    return takeString(collector, chars, length);
+}
+
 ObjFunction* newFunction(Collector* collector) {
     ObjFunction* function = allocate_obj(collector, ObjFunction, OBJ_FUNCTION);
     function->name = NULL;
@@ -101,6 +111,37 @@ ObjUpvalue* newUpvalue(Collector* collector, Value* value) {
     upvalue->next = NULL;
     upvalue->closed = NULL;
     return upvalue;
+}
+
+ObjError* newError(Collector* collector, char* first, ...) {
+    va_list args;                                     
+    va_start(args, first);
+    
+    ObjString* message = copyString(collector, first, strlen(first)); 
+    char* partial = NULL;
+    for (;;) {
+        partial = va_arg(args, char*);
+        if (partial == NULL)
+            break;
+        if (message == NULL) {
+            message = copyString(collector, partial, strlen(partial));
+        } else {
+            ObjString* sa = message;
+            pushSafe(collector, to_vobj(sa));
+            ObjString* sb = copyString(collector, partial, strlen(partial));
+            pushSafe(collector, to_vobj(sb));
+            message = concatenateStrings(collector, sa, sb);
+            popSafe(collector);
+            popSafe(collector);
+        }
+    }
+    va_end(args);
+    pushSafe(collector, to_vobj(message));
+    ObjError* error = allocate_obj(collector, ObjError, OBJ_ERROR);
+    popSafe(collector);
+    error->message = message;
+    error->payload = NULL;   
+    return error;
 }
 
 void closeUpvalue(ObjUpvalue* upvalue) {
@@ -147,6 +188,12 @@ void freeObject(Collector* collector, Obj* object) {
                 free_pointer(collector, upvalue, sizeof(ObjUpvalue));
                 break;
             }
+        case OBJ_ERROR:
+            {   
+                ObjError* error = (ObjError*) error;
+                free_pointer(collector, error, sizeof(ObjError));
+                break;
+            }
     }
 }
 
@@ -176,6 +223,17 @@ void printObj(Obj* obj) {
                 ObjUpvalue* upvalue = (ObjUpvalue*) obj;
                 printf("upvalue ");
                 printValue(*upvalue->value);
+                break;
+            }
+        case OBJ_ERROR:
+            {
+                ObjError* error = (ObjError*) obj;
+                printObj((Obj*) error->message);
+                if (error->payload != NULL) {
+                    printf(" {");
+                    printValue(*error->payload);
+                    printf("}");
+                }
                 break;
             }
     }
@@ -210,6 +268,7 @@ void blackenObject(Collector* collector, Obj* obj) {
                 }
                 break;
             }
+        // eventually case OBJ_ERROR:
     }
 }
 
@@ -231,4 +290,35 @@ void markObject(Collector* collector, Obj* obj) {
         collector->worklist = realloc(collector->worklist, sizeof(Obj*) * (collector->worklistCapacity));
     }
     collector->worklist[collector->worklistCount++] = obj;
+}
+
+static ObjString* indexString(Collector* collector, ObjString* string, int index) {
+    if (index > string->length)
+        return NULL;
+    return copyString(collector, string->chars + index, 1);
+}
+
+void indexObject(Collector* collector, Obj* array, Value* index, Value* result) {
+    switch (array->type) {
+        case OBJ_STRING:
+            {
+                if (!valueInteger(*index)) {
+                    *result = to_vobj(newError(collector, "invalid index for string", NULL));
+                    return;
+                }
+                ObjString* charAtIndex = 
+                    indexString(collector, (ObjString*) array, (int) as_cnumber(*index));
+                if (charAtIndex == NULL) {
+                    *result = to_vobj(newError(collector, "string index out of bounds", NULL));
+                    return;
+                }
+                *result = to_vobj(charAtIndex);
+                return;
+            }
+        default:
+            {
+                *result = to_vobj(newError(collector, "value not indexable", NULL));
+                break;
+            }
+    }
 }

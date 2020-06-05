@@ -45,6 +45,7 @@ typedef enum {
     OP_JUMP_BACK,
     OP_XOR,
     OP_CALL,
+    OP_INDEXING,
     OP_CLOSURE,
     OP_CLOSURE_LONG,
     OP_UPVALUE_GET,

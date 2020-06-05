@@ -38,10 +38,12 @@ struct sValue {
 #define is_function(value) isObjType(value, OBJ_FUNCTION)
 #define is_closure(value) isObjType(value, OBJ_CLOSURE)
 #define is_upvalue(value) isObjType(value, OBJ_UPVALUE)
+#define is_error(value) isObjType(value, OBJ_ERROR)
 
 #define as_function(value) ((ObjFunction*) as_obj(value))
 #define as_closure(value) ((ObjClosure*) as_obj(value))
 #define as_upvalue(value) ((ObjUpvalue*) as_obj(value))
+#define as_error(value) ((ObjError*) as_obj(value))
 #define as_string(value) ((ObjString*) as_obj(value))
 #define as_cstring(value) (as_string(value)->chars)
 
@@ -67,6 +69,7 @@ void initValueArray(ValueArray* valarray);
 int writeValueArray(Collector* collector, ValueArray* valarray, struct sValue value);
 void freeValueArray(Collector* collector, ValueArray* valarray);
 int isTruthy(struct sValue val); 
+int valueInteger(struct sValue value);
 int valuesIntegers(struct sValue a, struct sValue b); 
 int valuesEqual(struct sValue a, struct sValue b); 
 int valuesConcatenable(struct sValue a, struct sValue b); 
@@ -75,5 +78,6 @@ struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b
 void printValue(struct sValue val);
 void markValueArray(Collector* collector, ValueArray* values);
 void markValue(Collector* collector, struct sValue value);
+Value indexValue(Collector* collector, struct sValue arrayLike, struct sValue index);
 
 #endif

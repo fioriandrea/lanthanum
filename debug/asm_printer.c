@@ -99,6 +99,7 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             print_argumented_instruction(OP_CALL)
             print_simple_instruction(OP_RET)
             print_simple_instruction(OP_CLOSE_UPVALUE)
+            print_simple_instruction(OP_INDEXING)
             print_simple_instruction(OP_XOR)
             print_simple_instruction(OP_NEGATE)
             print_simple_instruction(OP_ADD)

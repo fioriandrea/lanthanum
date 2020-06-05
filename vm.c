@@ -48,7 +48,7 @@ static void runtimeError(VM* vm, char* format, ...) {
     resetStack(vm);                                    
 }    
 
-static Value peek(VM* vm, int depth) {
+static Value vmPeek(VM* vm, int depth) {
     return vm->sp[-(depth + 1)];
 }
 
@@ -88,7 +88,7 @@ static int vmRun(VM* vm) {
 #define read_constant_long_if(oplong) (caseCode == (oplong) ? read_constant_long() : read_constant())
 #define binary_op(operator, destination) \
     do { \
-        if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) { \
+        if (!valuesNumbers(vmPeek(vm, 0), vmPeek(vm, 1))) { \
             runtimeError(vm, "operand must be numbers"); \
             return RUNTIME_ERROR; \
         } \
@@ -144,7 +144,7 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "too many function arguments");
                         return RUNTIME_ERROR;
                     }
-                    Value closureValue = peek(vm, argCount);
+                    Value closureValue = vmPeek(vm, argCount);
                     if (!is_closure(closureValue)) {
                         runtimeError(vm, "can only call functions");
                         return RUNTIME_ERROR;
@@ -163,6 +163,20 @@ static int vmRun(VM* vm) {
                     currentFrame->closure = closure;
                     currentFrame->pc = currentFrame->closure->function->chunk->code;
                     currentFrame->localStack = vm->sp - argCount;
+                    break;
+                }
+            case OP_INDEXING:
+                {
+                    Value index = vmPeek(vm, 0);
+                    Value arrayLike = vmPeek(vm, 1);
+                    Value result = indexValue(vm->collector, arrayLike, index);
+                    if (is_error(result)) {
+                        runtimeError(vm, as_error(result)->message->chars);
+                        return RUNTIME_ERROR;
+                    }
+                    vmPop(vm);
+                    vmPop(vm);
+                    vmPush(vm, result);
                     break;
                 }
             case OP_CLOSURE:
@@ -207,7 +221,7 @@ static int vmRun(VM* vm) {
             case OP_UPVALUE_SET_LONG:
                 {
                     uint16_t index = read_long_if(OP_UPVALUE_SET_LONG);
-                    *currentFrame->closure->upvalues[index]->value = peek(vm, 0);
+                    *currentFrame->closure->upvalues[index]->value = vmPeek(vm, 0);
                     break;
                 }
             case OP_CONST: 
@@ -221,7 +235,7 @@ static int vmRun(VM* vm) {
             case OP_GLOBAL_DECL_LONG:
                 {
                     Value name = read_constant_long_if(OP_GLOBAL_DECL_LONG);
-                    mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
+                    mapPut(vm->collector, &vm->globals, name, vmPeek(vm, 0));
                     vmPop(vm); 
                     break;
                 }
@@ -248,7 +262,7 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "cannot assign undefined global variable");
                         return RUNTIME_ERROR;
                     } else {
-                        mapPut(vm->collector, &vm->globals, name, peek(vm, 0));
+                        mapPut(vm->collector, &vm->globals, name, vmPeek(vm, 0));
                     }
                     break;
                 }
@@ -263,14 +277,14 @@ static int vmRun(VM* vm) {
             case OP_LOCAL_SET_LONG:
                 {
                     uint16_t argument = read_long_if(OP_LOCAL_SET_LONG);
-                    currentFrame->localStack[argument] = peek(vm, 0);
+                    currentFrame->localStack[argument] = vmPeek(vm, 0);
                     break;
                 }
             case OP_JUMP_IF_FALSE:
                 {
                     uint8_t* oldpc = currentFrame->pc - 1;
                     uint16_t argument = read_long();
-                    if (!isTruthy(peek(vm, 0)))
+                    if (!isTruthy(vmPeek(vm, 0)))
                         currentFrame->pc = oldpc + argument;
                     break;
                 }
@@ -278,7 +292,7 @@ static int vmRun(VM* vm) {
                 {
                     uint8_t* oldpc = currentFrame->pc - 1;
                     uint16_t argument = read_long();
-                    if (isTruthy(peek(vm, 0)))
+                    if (isTruthy(vmPeek(vm, 0)))
                         currentFrame->pc = oldpc + argument;
                     break;
                 }
@@ -298,8 +312,8 @@ static int vmRun(VM* vm) {
                 }
             case OP_XOR:
                 {
-                    Value b = peek(vm, 0);
-                    Value a = peek(vm, 1);
+                    Value b = vmPeek(vm, 0);
+                    Value a = vmPeek(vm, 1);
                     int bb = isTruthy(b);
                     int ba = isTruthy(a);
                     vmPop(vm);
@@ -309,7 +323,7 @@ static int vmRun(VM* vm) {
                 }
             case OP_NEGATE:
                 {
-                    if (!is_number(peek(vm, 0))) {
+                    if (!is_number(vmPeek(vm, 0))) {
                         runtimeError(vm, "only numbers can be negated");
                         return RUNTIME_ERROR;
                     }
@@ -334,11 +348,11 @@ static int vmRun(VM* vm) {
                 }
             case OP_DIV:
                 {
-                    if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
+                    if (!valuesNumbers(vmPeek(vm, 0), vmPeek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
                         return RUNTIME_ERROR;
                     }
-                    if (as_cnumber(peek(vm, 0)) == 0) {
+                    if (as_cnumber(vmPeek(vm, 0)) == 0) {
                         runtimeError(vm, "cannot divide by zero (/ 0)");
                         return RUNTIME_ERROR;
                     }
@@ -349,15 +363,15 @@ static int vmRun(VM* vm) {
                 }
             case OP_MOD:
                 {
-                    if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
+                    if (!valuesNumbers(vmPeek(vm, 0), vmPeek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
                         return RUNTIME_ERROR;
                     }
-                    if (as_cnumber(peek(vm, 0)) == 0) {
+                    if (as_cnumber(vmPeek(vm, 0)) == 0) {
                         runtimeError(vm, "cannot divide by 0 (% 0)");
                         return RUNTIME_ERROR;
                     }
-                    if (!valuesIntegers(peek(vm, 0), peek(vm, 1))) {
+                    if (!valuesIntegers(vmPeek(vm, 0), vmPeek(vm, 1))) {
                         runtimeError(vm, "only integer allowed when using %");
                         return RUNTIME_ERROR;
                     }
@@ -369,7 +383,7 @@ static int vmRun(VM* vm) {
                 }
             case OP_POW:
                 {
-                    if (!valuesNumbers(peek(vm, 0), peek(vm, 1))) {
+                    if (!valuesNumbers(vmPeek(vm, 0), vmPeek(vm, 1))) {
                         runtimeError(vm, "operands must be numbers");
                         return RUNTIME_ERROR;
                     }
@@ -447,12 +461,12 @@ static int vmRun(VM* vm) {
                 }
             case OP_CONCAT:
                 {
-                    if (!valuesConcatenable(peek(vm, 0), peek(vm, 1))) {
+                    if (!valuesConcatenable(vmPeek(vm, 0), vmPeek(vm, 1))) {
                         runtimeError(vm, "values must be strings");
                         return RUNTIME_ERROR;
                     }
-                    Value b = peek(vm, 0);
-                    Value a = peek(vm, 1);
+                    Value b = vmPeek(vm, 0);
+                    Value a = vmPeek(vm, 1);
                     Value result = concatenate(vm->collector, a, b);
                     vmPop(vm);
                     vmPop(vm);
@@ -461,7 +475,7 @@ static int vmRun(VM* vm) {
                 }
             case OP_PRINT:
                 {
-                    Value val = peek(vm, 0);
+                    Value val = vmPeek(vm, 0);
                     printValue(val);
                     printf("\n");
                     vmPop(vm);

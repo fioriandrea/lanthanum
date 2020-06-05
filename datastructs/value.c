@@ -4,8 +4,6 @@
 #include "../util.h"
 #include "../memory.h"
 
-//#define debug_hash_codes
-
 int isObjType(struct sValue value, ObjType type) {
     return is_obj(value) && as_obj(value)->type == type;
 }
@@ -45,8 +43,14 @@ int isTruthy(struct sValue val) {
             (is_number(val) && as_cnumber(val) == 0));
 }
 
+int valueInteger(struct sValue value) {
+    if (!is_number(value))
+        return 0;
+    return is_integer(as_cnumber(value));
+}
+
 int valuesIntegers(struct sValue a, struct sValue b) {
-    return is_integer(as_cnumber(a)) && is_integer(as_cnumber(b));
+    return valueInteger(a) && valueInteger(b);
 }
 
 int valuesEqual(struct sValue a, struct sValue b) {
@@ -71,18 +75,11 @@ int valuesNumbers(struct sValue a, struct sValue b) {
 struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b) {
     ObjString* sa = as_string(a);
     ObjString* sb = as_string(b);
-    int length = sa->length + sb->length;
-    char* chars = allocate_block(collector, char, length);
-    memcpy(chars, sa->chars, sa->length);
-    memcpy(chars + sa->length, sb->chars, sb->length);
-    chars[length] = '\0'; 
-    return to_vobj(takeString(collector, chars, length));
+
+    return to_vobj(concatenateStrings(collector, sa, sb));
 }
 
 void printValue(struct sValue val) {
-#ifdef debug_hash_codes
-    printf("hash[%zu]:", hashstruct sValue(val));
-#endif
     switch (val.type) {
         case VALUE_BOOL:
             printf("%s", as_cbool(val) ? "true" : "false");
@@ -108,4 +105,14 @@ void markValue(Collector* collector, struct sValue value) {
 void markValueArray(Collector* collector, ValueArray* values) {
     for (int i = 0; i < values->count; i++)
         markValue(collector, values->values[i]);
+}
+
+Value indexValue(Collector* collector, struct sValue arrayLike, struct sValue index) {
+    if (!is_obj(arrayLike)) {
+        return to_vobj(newError(collector, "value not indexable", NULL));
+    }
+    Obj* arrayObj = as_obj(arrayLike);
+    Value result;
+    indexObject(collector, arrayObj, &index, &result);
+    return result;
 }

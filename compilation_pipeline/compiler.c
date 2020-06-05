@@ -457,11 +457,24 @@ static uint8_t argList(Compiler* compiler) {
 
 static void callExpression(Compiler* compiler, int canAssign) {
     primaryExpression(compiler, canAssign);    
-    while (check(compiler, TOK_LEFT_ROUND_BRACKET)) {
+    while (check(compiler, TOK_LEFT_ROUND_BRACKET) || check(compiler, TOK_LEFT_SQUARE_BRACKET)) {
         advance(compiler);
-        uint8_t argCount = argList(compiler);
-        emitByte(compiler, OP_CALL);
-        emitByte(compiler, argCount);
+        switch (previousTokenType(compiler)) {
+            case TOK_LEFT_ROUND_BRACKET:
+                {
+                    uint8_t argCount = argList(compiler);
+                    emitByte(compiler, OP_CALL);
+                    emitByte(compiler, argCount);
+                    break;
+                }
+            case TOK_LEFT_SQUARE_BRACKET:
+                {
+                    expression(compiler);
+                    eatError(compiler, TOK_RIGHT_SQUARE_BRACKET, "expected \"]\" after indexing expression");
+                    emitByte(compiler, OP_INDEXING);
+                    break;
+                }
+        }
     }        
 }
 
