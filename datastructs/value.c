@@ -107,12 +107,22 @@ void markValueArray(Collector* collector, struct sValueArray* values) {
         markValue(collector, values->values[i]);
 }
 
-Value indexValue(Collector* collector, struct sValue arrayLike, struct sValue index) {
+Value indexGetValue(Collector* collector, struct sValue arrayLike, struct sValue index) {
     if (!is_obj(arrayLike)) {
         return to_vobj(newError(collector, "value not indexable", NULL));
     }
     Obj* arrayObj = as_obj(arrayLike);
     Value result;
-    indexObject(collector, arrayObj, &index, &result);
+    indexGetObject(collector, arrayObj, &index, &result);
+    return result;
+}
+
+Value indexSetValue(Collector* collector, struct sValue arrayLike, struct sValue index, struct sValue value) {
+    if (!is_obj(arrayLike)) {
+        return to_vobj(newError(collector, "value not indexable", NULL));
+    }
+    Obj* arrayObj = as_obj(arrayLike);
+    Value result;
+    indexSetObject(collector, arrayObj, &index, &value, &result);
     return result;
 }

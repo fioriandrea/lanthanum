@@ -426,20 +426,28 @@ void markObject(Collector* collector, Obj* obj) {
     collector->worklist[collector->worklistCount++] = obj;
 }
 
-static Value* indexArray(Collector* collector, ObjArray* array, int index) {
+static Value* indexGetArray(Collector* collector, ObjArray* array, int index) {
     int count = array->values->count;
     if (index >= count)
         return NULL;
     return &array->values->values[index];
 }
 
-static ObjString* indexString(Collector* collector, ObjString* string, int index) {
+static Value* indexSetArray(Collector* collector, ObjArray* array, int index, Value* value) {
+    int count = array->values->count;
+    if (index >= count)
+        return NULL;
+    array->values->values[index] = *value;
+    return &array->values->values[index];
+}
+
+static ObjString* indexGetString(Collector* collector, ObjString* string, int index) {
     if (index > string->length)
         return NULL;
     return copyString(collector, string->chars + index, 1);
 }
 
-void indexObject(Collector* collector, Obj* array, Value* index, Value* result) {
+void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result) {
     switch (array->type) {
         case OBJ_STRING:
             {
@@ -448,7 +456,7 @@ void indexObject(Collector* collector, Obj* array, Value* index, Value* result) 
                     return;
                 }
                 ObjString* charAtIndex = 
-                    indexString(collector, (ObjString*) array, (int) as_cnumber(*index));
+                    indexGetString(collector, (ObjString*) array, (int) as_cnumber(*index));
                 if (charAtIndex == NULL) {
                     *result = to_vobj(newError(collector, "string index out of bounds", NULL));
                     return;
@@ -463,9 +471,9 @@ void indexObject(Collector* collector, Obj* array, Value* index, Value* result) 
                     return;
                 }
                 Value* valueAtIndex = 
-                    indexArray(collector, (ObjArray*) array, (int) as_cnumber(*index));
+                    indexGetArray(collector, (ObjArray*) array, (int) as_cnumber(*index));
                 if (valueAtIndex == NULL) {
-                    *result = to_vobj(newError(collector, "string index out of bounds", NULL));
+                    *result = to_vobj(newError(collector, "array index out of bounds", NULL));
                     return;
                 }
                 *result = *valueAtIndex;
@@ -473,7 +481,32 @@ void indexObject(Collector* collector, Obj* array, Value* index, Value* result) 
             }
         default:
             {
-                *result = to_vobj(newError(collector, "value not indexable", NULL));
+                *result = to_vobj(newError(collector, "object not indexable", NULL));
+                break;
+            }
+    }
+}
+
+void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value, Value* result) {
+    switch (array->type) {
+        case OBJ_ARRAY:
+            {
+                if (!valueInteger(*index)) {
+                    *result = to_vobj(newError(collector, "invalid index for array", NULL));
+                    return;
+                }
+                Value* valueAtIndex = 
+                    indexSetArray(collector, (ObjArray*) array, (int) as_cnumber(*index), value);
+                if (valueAtIndex == NULL) {
+                    *result = to_vobj(newError(collector, "array index out of bounds", NULL));
+                    return;
+                }
+                *result = *valueAtIndex;
+                return;
+            }
+        default:
+            {
+                *result = to_vobj(newError(collector, "object index not assignable", NULL));
                 break;
             }
     }

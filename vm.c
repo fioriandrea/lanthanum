@@ -165,15 +165,31 @@ static int vmRun(VM* vm) {
                     currentFrame->localStack = vm->sp - argCount;
                     break;
                 }
-            case OP_INDEXING:
+            case OP_INDEXING_GET:
                 {
                     Value index = vmPeek(vm, 0);
                     Value arrayLike = vmPeek(vm, 1);
-                    Value result = indexValue(vm->collector, arrayLike, index);
+                    Value result = indexGetValue(vm->collector, arrayLike, index);
                     if (is_error(result)) {
                         runtimeError(vm, as_error(result)->message->chars);
                         return RUNTIME_ERROR;
                     }
+                    vmPop(vm);
+                    vmPop(vm);
+                    vmPush(vm, result);
+                    break;
+                }
+            case OP_INDEXING_SET:
+                {
+                    Value assignValue = vmPeek(vm, 0);
+                    Value index = vmPeek(vm, 1);
+                    Value arrayLike = vmPeek(vm, 2);
+                    Value result = indexSetValue(vm->collector, arrayLike, index, assignValue);
+                    if (is_error(result)) {
+                        runtimeError(vm, as_error(result)->message->chars);
+                        return RUNTIME_ERROR;
+                    }
+                    vmPop(vm);
                     vmPop(vm);
                     vmPop(vm);
                     vmPush(vm, result);

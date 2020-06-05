@@ -517,7 +517,12 @@ static void callExpression(Compiler* compiler, int canAssign) {
                 {
                     expression(compiler);
                     eatError(compiler, TOK_RIGHT_SQUARE_BRACKET, "expected \"]\" after indexing expression");
-                    emitByte(compiler, OP_INDEXING);
+                    if (canAssign && eat(compiler, TOK_EQUAL)) {
+                        expression(compiler);
+                        emitByte(compiler, OP_INDEXING_SET);
+                    } else {
+                        emitByte(compiler, OP_INDEXING_GET);
+                    }
                     break;
                 }
         }

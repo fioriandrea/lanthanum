@@ -82,6 +82,7 @@ struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b
 void printValue(struct sValue val);
 void markValueArray(Collector* collector, struct sValueArray* values);
 void markValue(Collector* collector, struct sValue value);
-Value indexValue(Collector* collector, struct sValue arrayLike, struct sValue index);
+Value indexGetValue(Collector* collector, struct sValue arrayLike, struct sValue index);
+Value indexSetValue(Collector* collector, struct sValue arrayLike, struct sValue index, struct sValue value);
 
 #endif
