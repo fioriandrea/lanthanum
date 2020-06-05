@@ -479,6 +479,11 @@ void indexGetObject(Collector* collector, Obj* array, Value* index, Value* resul
                 *result = *valueAtIndex;
                 return;
             }
+        case OBJ_DICT:
+            {
+                dictGet((ObjDict*) array, index, result);
+                return;
+            }
         default:
             {
                 *result = to_vobj(newError(collector, "object not indexable", NULL));
@@ -502,6 +507,12 @@ void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value
                     return;
                 }
                 *result = *valueAtIndex;
+                return;
+            }
+        case OBJ_DICT:
+            {
+                dictPut(collector, (ObjDict*) array, index, value);
+                *result = *value;
                 return;
             }
         default:

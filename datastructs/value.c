@@ -112,7 +112,7 @@ Value indexGetValue(Collector* collector, struct sValue arrayLike, struct sValue
         return to_vobj(newError(collector, "value not indexable", NULL));
     }
     Obj* arrayObj = as_obj(arrayLike);
-    Value result;
+    Value result = to_vnihl();
     indexGetObject(collector, arrayObj, &index, &result);
     return result;
 }
