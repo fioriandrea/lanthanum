@@ -268,7 +268,15 @@ void blackenObject(Collector* collector, Obj* obj) {
                 }
                 break;
             }
-        // eventually case OBJ_ERROR:
+        case OBJ_ERROR:
+            {
+                ObjError* err = (ObjError*) obj;
+                markObject(collector, (Obj*) err->message);
+                if (err->payload != NULL) {
+                    markValue(collector, *err->payload);
+                }
+                break;
+            }
     }
 }
 
