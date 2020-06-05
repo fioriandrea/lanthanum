@@ -39,6 +39,7 @@ struct sValue {
 #define is_closure(value) isObjType(value, OBJ_CLOSURE)
 #define is_upvalue(value) isObjType(value, OBJ_UPVALUE)
 #define is_array(value) isObjType(value, OBJ_ARRAY)
+#define is_dict(value) isObjType(value, OBJ_DICT)
 #define is_error(value) isObjType(value, OBJ_ERROR)
 
 #define as_function(value) ((ObjFunction*) as_obj(value))
@@ -47,6 +48,7 @@ struct sValue {
 #define as_error(value) ((ObjError*) as_obj(value))
 #define as_string(value) ((ObjString*) as_obj(value))
 #define as_array(value) ((ObjArray*) as_obj(value))
+#define as_dict(value) ((ObjDict*) as_obj(value))
 #define as_cstring(value) (as_string(value)->chars)
 
 int isObjType(struct sValue value, ObjType type);

@@ -9,6 +9,7 @@ typedef enum {
     OBJ_CLOSURE,
     OBJ_UPVALUE,
     OBJ_ARRAY,
+    OBJ_DICT,
     OBJ_ERROR,
 } ObjType;
 
@@ -62,12 +63,18 @@ typedef struct {
     ValueArray* values;
 } ObjArray;
 
+typedef struct {
+    Obj obj;
+    HashMap* map;
+} ObjDict;
+
 ObjString* copyString(Collector* collector, char* chars, int length);
 ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
 ObjArray* newArray(Collector* collector);
+ObjDict* newDict(Collector* collector);
 ObjError* newError(Collector* collector, char* first, ...);
 void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
@@ -77,5 +84,7 @@ void blackenObject(Collector* collector, Obj* obj);
 void indexObject(Collector* collector, Obj* array, Value* index, Value* result);
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
 void arrayPush(Collector* collector, ObjArray* array, Value* value);
+int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value);
+int dictGet(ObjDict* dict, Value* key, Value* result);
 
 #endif

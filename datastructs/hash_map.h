@@ -12,19 +12,19 @@ struct sEntry {
 
 typedef struct sEntry Entry;
 
-typedef struct {
+struct sHashMap {
     Entry** entries;
     int capacity;
     int count;
-} HashMap;
+};
 
-void initMap(HashMap* map);
-int mapPut(Collector* collector, HashMap* map, Value key, Value value);
-int mapGet(HashMap* map, Value key, Value* result);
-int mapRemove(Collector* collector, HashMap* map, Value key);
-ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length);
-void freeMap(Collector* collector, HashMap* map);
-void markMap(Collector* collector, HashMap* map);
-void removeUnmarkedKeys(Collector* collector, HashMap* map);
+void initMap(struct sHashMap* map);
+int mapPut(Collector* collector, struct sHashMap* map, Value key, Value value);
+int mapGet(struct sHashMap* map, Value key, Value* result);
+int mapRemove(Collector* collector, struct sHashMap* map, Value key);
+ObjString* containsStringDeepEqual(struct sHashMap* map, char* chars, int length);
+void freeMap(Collector* collector, struct sHashMap* map);
+void markMap(Collector* collector, struct sHashMap* map);
+void removeUnmarkedKeys(Collector* collector, struct sHashMap* map);
 
 #endif

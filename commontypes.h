@@ -8,5 +8,6 @@ typedef struct sCollector Collector;
 typedef struct sChunk Chunk;
 typedef struct sValue Value;
 typedef struct sValueArray ValueArray;
+typedef struct sHashMap HashMap;
 
 #endif

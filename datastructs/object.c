@@ -77,6 +77,14 @@ void arrayPush(Collector* collector, ObjArray* array, Value* value) {
     writeValueArray(collector, array->values, *value);
 }
 
+int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value) {
+    return mapPut(collector, dict->map, *key, *value);
+}
+
+int dictGet(ObjDict* dict, Value* key, Value* result) {
+    return mapGet(dict->map, *key, result);
+}
+
 static ObjArray* concatenateArrays(Collector* collector, ObjArray* a, ObjArray* b) {
     ObjArray* newArr = newArray(collector);
     for (int i = 0; i < a->values->count; i++) {
@@ -149,6 +157,14 @@ ObjArray* newArray(Collector* collector) {
     ObjArray* array = allocate_obj(collector, ObjArray, OBJ_ARRAY);
     array->values = values;
     return array;
+}
+
+ObjDict* newMap(Collector* collector) {
+    HashMap* map = allocate_pointer(collector, HashMap, sizeof(HashMap));
+    initMap(map);
+    ObjDict* dict = allocate_obj(collector, ObjDict, OBJ_DICT);
+    dict->map = map;
+    return dict;
 }
 
 ObjError* newError(Collector* collector, char* first, ...) {
@@ -238,6 +254,14 @@ void freeObject(Collector* collector, Obj* object) {
                 freeValueArray(collector, array->values);
                 free_pointer(collector, array->values, sizeof(ValueArray));
                 free_pointer(collector, array, sizeof(ObjArray));
+                break;                    
+            }
+        case OBJ_DICT:
+            {
+                ObjDict* dict = (ObjDict*) object;
+                freeMap(collector, dict->map);
+                free_pointer(collector, dict->map, sizeof(HashMap));
+                free_pointer(collector, dict, sizeof(ObjDict));
                 break;                    
             }
     }
@@ -352,6 +376,12 @@ void blackenObject(Collector* collector, Obj* obj) {
                 for (int i = 0; i < array->values->count; i++) {
                     markValue(collector, array->values->values[i]);
                 }
+                break;
+            }
+        case OBJ_DICT:
+            {   
+                ObjDict* dict = (ObjDict*) obj;
+                markMap(collector, dict->map);
                 break;
             }
     }

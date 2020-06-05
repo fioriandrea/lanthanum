@@ -39,7 +39,7 @@ static int entriesPut(Collector* collector, Entry** entries, int capacity, Value
     }
 }
 
-static void growMap(Collector* collector, HashMap* map) {
+static void growMap(Collector* collector, struct sHashMap* map) {
     int newcap = compute_capacity(map->capacity);
     Entry** newentries = allocate_block(collector, Entry*, newcap);
     for (int i = 0; i < newcap; i++) {
@@ -57,13 +57,13 @@ static void growMap(Collector* collector, HashMap* map) {
     map->capacity = newcap;
 }
 
-void initMap(HashMap* map) {
+void initMap(struct sHashMap* map) {
     map->entries = NULL;
     map->count = 0;
     map->capacity = 0;
 }
 
-int mapPut(Collector* collector, HashMap* map, Value key, Value value) {
+int mapPut(Collector* collector, struct sHashMap* map, Value key, Value value) {
     if (map->count + 1 > map->capacity * LOAD_FACTOR) {
         growMap(collector, map);
     }
@@ -73,7 +73,7 @@ int mapPut(Collector* collector, HashMap* map, Value key, Value value) {
     return result;
 }
 
-int mapGet(HashMap* map, Value key, Value* result) {
+int mapGet(struct sHashMap* map, Value key, Value* result) {
     Entry* entry = findEntry(map->entries, map->capacity, key);
     if (entry == NULL) {
         return 0;
@@ -82,7 +82,7 @@ int mapGet(HashMap* map, Value key, Value* result) {
     return 1;
 }
 
-int mapRemove(Collector* collector, HashMap* map, Value key) {
+int mapRemove(Collector* collector, struct sHashMap* map, Value key) {
     if (map->count == 0)
         return 0;
     uint32_t hash = get_value_hash(key);
@@ -108,7 +108,7 @@ int mapRemove(Collector* collector, HashMap* map, Value key) {
     return 0;
 }
 
-void freeMap(Collector* collector, HashMap* map) {
+void freeMap(Collector* collector, struct sHashMap* map) {
     for (int i = 0; i < map->capacity; i++) {
         Entry* entry = map->entries[i];
         while (entry != NULL) {
@@ -121,7 +121,7 @@ void freeMap(Collector* collector, HashMap* map) {
     initMap(map);
 }
 
-ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length) {
+ObjString* containsStringDeepEqual(struct sHashMap* map, char* chars, int length) {
     if (map->count == 0)
         return NULL;
     uint32_t hash = hash_string(chars, length);
@@ -139,7 +139,7 @@ ObjString* containsStringDeepEqual(HashMap* map, char* chars, int length) {
     return NULL;
 }
 
-void markMap(Collector* collector, HashMap* map) {
+void markMap(Collector* collector, struct sHashMap* map) {
     for (int i = 0; i < map->capacity; i++) {
         Entry* entry = map->entries[i];
         if (entry != NULL) {
@@ -154,7 +154,7 @@ void markMap(Collector* collector, HashMap* map) {
     }
 }
 
-void removeUnmarkedKeys(Collector* collector, HashMap* map) {
+void removeUnmarkedKeys(Collector* collector, struct sHashMap* map) {
     Entry* dummy = (Entry*) malloc(sizeof(Entry));
     for (int i = 0; i < map->capacity; i++) {
         dummy->next = map->entries[i];
