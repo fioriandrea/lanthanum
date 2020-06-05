@@ -375,6 +375,13 @@ void markObject(Collector* collector, Obj* obj) {
     collector->worklist[collector->worklistCount++] = obj;
 }
 
+static Value* indexArray(Collector* collector, ObjArray* array, int index) {
+    int count = array->values->count;
+    if (index >= count)
+        return NULL;
+    return &array->values->values[count - index - 1];
+}
+
 static ObjString* indexString(Collector* collector, ObjString* string, int index) {
     if (index > string->length)
         return NULL;
@@ -396,6 +403,21 @@ void indexObject(Collector* collector, Obj* array, Value* index, Value* result) 
                     return;
                 }
                 *result = to_vobj(charAtIndex);
+                return;
+            }
+        case OBJ_ARRAY:
+            {
+                if (!valueInteger(*index)) {
+                    *result = to_vobj(newError(collector, "invalid index for array", NULL));
+                    return;
+                }
+                Value* valueAtIndex = 
+                    indexArray(collector, (ObjArray*) array, (int) as_cnumber(*index));
+                if (valueAtIndex == NULL) {
+                    *result = to_vobj(newError(collector, "string index out of bounds", NULL));
+                    return;
+                }
+                *result = *valueAtIndex;
                 return;
             }
         default:
