@@ -73,22 +73,17 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
     return string;
 }
 
+void arrayPush(Collector* collector, ObjArray* array, Value* value) {
+    writeValueArray(collector, array->values, *value);
+}
+
 static ObjArray* concatenateArrays(Collector* collector, ObjArray* a, ObjArray* b) {
-    ValueArray* newValues = allocate_pointer(collector, ValueArray, sizeof(ValueArray));
-    initValueArray(newValues);
-    uint32_t newSize = nearest_bigger_pow_of_two(a->values->count + b->values->count);
-    if (newSize != 0) {
-        newValues->values = allocate_block(collector, Value, newSize);
-    }
-    for (int i = 0; i < a->values->count; i++) {
-        writeValueArray(collector, newValues, a->values->values[i]);
-    }
-    for (int i = 0; i < b->values->count; i++) {
-        writeValueArray(collector, newValues, b->values->values[i]);
-    }
-    ObjArray* newArray = allocate_obj(collector, ObjArray, OBJ_ARRAY);
-    newArray->values = newValues;
-    return newArray;
+    ObjArray* newArr = newArray(collector);
+    for (int i = 0; i < b->values->count; i++)
+        arrayPush(collector, newArr, &b->values->values[i]);
+    for (int i = 0; i < a->values->count; i++)
+        arrayPush(collector, newArr, &a->values->values[i]);
+    return newArr;
 }
 
 static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb) {
@@ -146,7 +141,9 @@ ObjUpvalue* newUpvalue(Collector* collector, Value* value) {
     return upvalue;
 }
 
-ObjArray* newArray(Collector* collector, ValueArray* values) {
+ObjArray* newArray(Collector* collector) {
+    ValueArray* values = allocate_pointer(collector, ValueArray, sizeof(ValueArray));
+    initValueArray(values);
     ObjArray* array = allocate_obj(collector, ObjArray, OBJ_ARRAY);
     array->values = values;
     return array;
@@ -229,9 +226,17 @@ void freeObject(Collector* collector, Obj* object) {
             }
         case OBJ_ERROR:
             {   
-                ObjError* error = (ObjError*) error;
+                ObjError* error = (ObjError*) object;
                 free_pointer(collector, error, sizeof(ObjError));
                 break;
+            }
+        case OBJ_ARRAY:
+            {
+                ObjArray* array = (ObjArray*) object;
+                freeValueArray(collector, array->values);
+                free_pointer(collector, array->values, sizeof(ValueArray));
+                free_pointer(collector, array, sizeof(ObjArray));
+                break;                    
             }
     }
 }
@@ -275,6 +280,29 @@ void printObj(Obj* obj) {
                 }
                 break;
             }
+        case OBJ_ARRAY:
+            {
+                ObjArray* array = (ObjArray*) obj;
+                printf("[");
+                if (array->values->count > 0) {
+                    int index = array->values->count - 1;
+                    Value val = array->values->values[index];
+                    if (is_obj(val) && as_obj(val) == obj)
+                        printf("<self>");
+                    else
+                        printValue(val);
+                }
+                for (int i = array->values->count - 2; i >= 0; i--) {
+                    printf(", ");
+                    Value val = array->values->values[i];
+                    if (is_obj(val) && as_obj(val) == obj)
+                        printf("<self>");
+                    else
+                        printValue(val);
+                }
+                printf("]");
+                break;
+            }
     }
 }
 
@@ -313,6 +341,14 @@ void blackenObject(Collector* collector, Obj* obj) {
                 markObject(collector, (Obj*) err->message);
                 if (err->payload != NULL) {
                     markValue(collector, *err->payload);
+                }
+                break;
+            }
+        case OBJ_ARRAY:
+            {   
+                ObjArray* array = (ObjArray*) obj;
+                for (int i = 0; i < array->values->count; i++) {
+                    markValue(collector, array->values->values[i]);
                 }
                 break;
             }

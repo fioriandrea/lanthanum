@@ -224,6 +224,19 @@ static int vmRun(VM* vm) {
                     *currentFrame->closure->upvalues[index]->value = vmPeek(vm, 0);
                     break;
                 }
+            case OP_ARRAY:
+            case OP_ARRAY_LONG:
+                {
+                    uint16_t len = read_long_if(OP_ARRAY_LONG);
+                    ObjArray* array = newArray(vm->collector);
+                    while (len > 0) {
+                        arrayPush(vm->collector, array, vm->sp - 1);
+                        vmPop(vm);
+                        len--;
+                    }
+                    vmPush(vm, to_vobj(array));
+                    break;
+                }
             case OP_CONST: 
             case OP_CONST_LONG:
                 {

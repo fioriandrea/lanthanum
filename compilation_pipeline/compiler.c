@@ -287,6 +287,10 @@ static void emitJumpBack(Compiler* compiler, int address) {
     emitByte(compiler, sl.b1);
 }
 
+static void emitArrayLiteral(Compiler* compiler, int count) {
+    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_ARRAY_LONG, OP_ARRAY, (uint16_t) count, compiler->previous.line);
+}
+
 static void emitBinary(Compiler* compiler, TokenType operator) {
     switch (operator) {
         case TOK_PLUS: emitByte(compiler, OP_ADD); break;
@@ -429,10 +433,28 @@ static void groupingExpression(Compiler* compiler) {
     eatError(compiler, TOK_RIGHT_ROUND_BRACKET, "missing ')' after grouping expression");
 }
 
+static void arrayExpression(Compiler* compiler) {
+    advance(compiler);
+    int count = 0;
+    if (eat(compiler, TOK_RIGHT_SQUARE_BRACKET)) {
+        emitArrayLiteral(compiler, 0);
+        return;
+    }
+    do {
+        nonCommaExpression(compiler);
+        count++;
+    } while (eat(compiler, TOK_COMMA));
+    eatError(compiler, TOK_RIGHT_SQUARE_BRACKET, "expected \"]\" after array literal");
+    emitArrayLiteral(compiler, count);
+}
+
 static void primaryExpression(Compiler* compiler, int canAssign) {
     switch (currentTokenType(compiler)) {
         case TOK_LEFT_ROUND_BRACKET:
             groupingExpression(compiler);
+            break;
+        case TOK_LEFT_SQUARE_BRACKET:
+            arrayExpression(compiler);
             break;
         default:
             basicExpression(compiler, canAssign);

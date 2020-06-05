@@ -57,6 +57,7 @@ typedef struct {
     Value* payload;
 } ObjError;
 
+// arrays have always their elements in reverse
 typedef struct {
     Obj obj;
     ValueArray* values;
@@ -67,7 +68,7 @@ ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
-ObjArray* newArray(Collector* collector, ValueArray* values);
+ObjArray* newArray(Collector* collector);
 ObjError* newError(Collector* collector, char* first, ...);
 void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
@@ -76,5 +77,6 @@ void markObject(Collector* collector, Obj* obj);
 void blackenObject(Collector* collector, Obj* obj);
 void indexObject(Collector* collector, Obj* array, Value* index, Value* result);
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
+void arrayPush(Collector* collector, ObjArray* array, Value* value);
 
 #endif
