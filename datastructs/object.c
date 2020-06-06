@@ -17,6 +17,9 @@ static inline char* string_type(ObjType type) {
             type_case(OBJ_FUNCTION)
             type_case(OBJ_CLOSURE)
             type_case(OBJ_UPVALUE)
+            type_case(OBJ_ARRAY)
+            type_case(OBJ_DICT)
+            type_case(OBJ_ERROR)
     }
 #undef type_case
 }
@@ -74,11 +77,16 @@ ObjString* takeString(Collector* collector, char* chars, int length) {
 }
 
 void arrayPush(Collector* collector, ObjArray* array, Value* value) {
+    pushSafe(collector, to_vobj(array));
     writeValueArray(collector, array->values, *value);
+    popSafe(collector);
 }
 
 int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value) {
-    return mapPut(collector, dict->map, *key, *value);
+    pushSafe(collector, to_vobj(dict));
+    int res = mapPut(collector, dict->map, *key, *value);
+    popSafe(collector);
+    return res;
 }
 
 int dictGet(ObjDict* dict, Value* key, Value* result) {

@@ -99,6 +99,8 @@ int printInstruction(Chunk* chunk, OpCode code, int offset) {
             print_argumented_instruction(OP_CALL)
             print_argumented_instruction(OP_ARRAY)
             print_argumented_long_instruction(OP_ARRAY_LONG)
+            print_argumented_instruction(OP_DICT)
+            print_argumented_long_instruction(OP_DICT_LONG)
             print_simple_instruction(OP_RET)
             print_simple_instruction(OP_CLOSE_UPVALUE)
             print_simple_instruction(OP_INDEXING_GET)
