@@ -608,8 +608,21 @@ static void logicalSumExpression(Compiler* compiler, int canAssign) {
     }
 }
 
+static void ternaryExpression(Compiler* compiler, int canAssign) {
+    logicalSumExpression(compiler, canAssign);
+    if (eat(compiler, TOK_QUESTION_MARK)) {
+        int skipfirst = emitJump(compiler, OP_JUMP_IF_FALSE);
+        expression(compiler);
+        int skipsecond = emitJump(compiler, OP_JUMP);
+        patchJump(compiler, skipfirst);
+        eatError(compiler, TOK_COLON, "expected \":\" inside ternary expression");
+        ternaryExpression(compiler, canAssign);
+        patchJump(compiler, skipsecond);
+    }
+}
+
 static void nonCommaExpression(Compiler* compiler) {
-    logicalSumExpression(compiler, 1);
+    ternaryExpression(compiler, 1);
 }
 
 static void commaExpression(Compiler* compiler) {
