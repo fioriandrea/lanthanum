@@ -8,7 +8,7 @@
 
 #define MAX_LOCALS 700
 #define MAX_UPVALUES 700
-#define MAX_SKIP_LOOPS 700
+#define MAX_LOOP_SKIPS 700
 
 struct sLocal {
     Token name;
@@ -24,12 +24,16 @@ struct sUpvalue {
 typedef struct sLocal Local;
 typedef struct sUpvalue Upvalue;
 
+typedef enum {
+    SKIP_BREAK,
+    SKIP_CONTINUE,
+} SkipType;
+
 typedef struct {
-    int breakAddresses[MAX_SKIP_LOOPS];
-    int breakCount;
-    int continueAddresses[MAX_SKIP_LOOPS];
-    int continueCount;
-} SkipLoopList;
+    int address;
+    int loopDepth;
+    SkipType type;
+} LoopSkip;
 
 struct sScope {
     struct sScope* enclosing;
@@ -38,7 +42,8 @@ struct sScope {
     int localsCount;
     ObjFunction* function;
     Upvalue upvalues[MAX_UPVALUES];
-    SkipLoopList skipLoopList;
+    LoopSkip loopSkips[MAX_LOOP_SKIPS];
+    int loopSkipCount;
     int loopDepth;
 };
 

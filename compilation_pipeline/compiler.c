@@ -314,19 +314,18 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
     }
 }
 
-static void initSkipLoopList(SkipLoopList* sll) {
-    sll->breakCount = 0;
-    sll->continueCount = 0;
-}
-
-static void pushScope(Compiler* compiler, Scope* scope, ObjString* name) {
-    scope->enclosing = compiler->scope;
-    initSkipLoopList(&scope->skipLoopList);
+static void initScope(Compiler* compiler, Scope* scope, ObjString* name) {
     scope->depth = 0;
     scope->localsCount = 0;
     scope->loopDepth = 0;
+    scope->loopSkipCount = 0;
     scope->function = newFunction(compiler->collector);
     scope->function->name = name;
+}
+
+static void pushScope(Compiler* compiler, Scope* scope, ObjString* name) {
+    initScope(compiler, scope, name);
+    scope->enclosing = compiler->scope;
     compiler->scope = scope;
 }
 
@@ -790,24 +789,27 @@ static void ifStat(Compiler* compiler) {
         patchJump(compiler, jumpAddresses[i]);
 }
 
-static inline SkipLoopList* get_skip_loop_list(Compiler* compiler) {
-    return &compiler->scope->skipLoopList;
+static void pushSkip(Compiler* compiler, int address, SkipType type) {
+    Scope* scope = compiler->scope;
+    LoopSkip* skip = &scope->loopSkips[scope->loopSkipCount];
+    skip->type = type;
+    skip->address = address;
+    skip->loopDepth = scope->loopDepth;
+    scope->loopSkipCount++;
 }
 
 static void pushBreak(Compiler* compiler, int breakAddress) {
-    SkipLoopList* sll = get_skip_loop_list(compiler); 
-    sll->breakAddresses[sll->breakCount++] = breakAddress;
-}
-
-static int popBreak(Compiler* compiler) {
-    SkipLoopList* sll = get_skip_loop_list(compiler); 
-    return sll->breakAddresses[--sll->breakCount];
+    pushSkip(compiler, breakAddress, SKIP_BREAK);
 }
 
 static void patchBreak(Compiler* compiler) {
-    SkipLoopList* sll = get_skip_loop_list(compiler); 
-    if (sll->breakCount > 0)
-        patchJump(compiler, popBreak(compiler));
+    Scope* scope = compiler->scope;
+    LoopSkip* skip = &scope->loopSkips[scope->loopSkipCount - 1];
+    while (scope->loopSkipCount - 1 >= 0 && skip->loopDepth == scope->loopDepth) {
+        patchJump(compiler, skip->address);
+        scope->loopSkipCount--;
+        skip = &scope->loopSkips[scope->loopSkipCount - 1];
+    }
 }
 
 static void emitBreak(Compiler* compiler) {
@@ -818,6 +820,7 @@ static void emitBreak(Compiler* compiler) {
 static void breakStat(Compiler* compiler) {
     if (compiler->scope->loopDepth <= 0) {
         errorAtCurrent(compiler, "cannot use \"break\" outside of a loop");
+        return;
     }
     advance(compiler); // skip break
     eatError(compiler, TOK_NEW_LINE, "expected new line after \"break\"");
@@ -900,9 +903,7 @@ ObjFunction* compile(Compiler* compiler, Collector* collector, char* source) {
     compiler->collector = collector;
     Scope startingScope;
     startingScope.enclosing = NULL;
-    startingScope.depth = 0;
-    startingScope.localsCount = 0;
-    startingScope.function = newFunction(compiler->collector);
+    initScope(compiler, &startingScope, NULL);
     compiler->scope = &startingScope;
 
     advance(compiler);
