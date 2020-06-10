@@ -813,10 +813,6 @@ static void pushSkip(Compiler* compiler, int address, SkipType type) {
     scope->loopSkipCount++;
 }
 
-static void pushBreak(Compiler* compiler, int breakAddress) {
-    pushSkip(compiler, breakAddress, SKIP_BREAK);
-}
-
 static void patchSkip(Compiler* compiler, SkipType type) {
     Scope* scope = compiler->scope;
     int skipCount = scope->loopSkipCount;
@@ -827,6 +823,10 @@ static void patchSkip(Compiler* compiler, SkipType type) {
         skipCount--;
         skip = &scope->loopSkips[skipCount - 1];
     }
+}
+
+static void pushBreak(Compiler* compiler, int breakAddress) {
+    pushSkip(compiler, breakAddress, SKIP_BREAK);
 }
 
 static void patchBreak(Compiler* compiler) {
@@ -848,6 +848,29 @@ static void breakStat(Compiler* compiler) {
     emitBreak(compiler); 
 }
 
+static void pushContinue(Compiler* compiler, int continueAddress) {
+    pushSkip(compiler, continueAddress, SKIP_CONTINUE);
+}
+
+static void patchContinue(Compiler* compiler) {
+    patchSkip(compiler, SKIP_CONTINUE);
+}
+
+static void emitContinue(Compiler* compiler) {
+    int continueAddress = emitJump(compiler, OP_JUMP);
+    pushSkip(compiler, continueAddress);
+}
+
+static void continueStat(Compiler* compiler) {
+    if (compiler->scope->loopDepth <= 0) {
+        errorAtCurrent(compiler, "cannot use \"continue\" outside of a loop");
+        return;
+    }
+    advance(compiler); // skip continue
+    eatError(compiler, TOK_NEW_LINE, "expected new line after \"continue\"");
+    emitContinue(compiler); 
+}
+
 static void whileStat(Compiler* compiler) {
     enterLoop(compiler);
     advance(compiler); // skip while
@@ -859,6 +882,7 @@ static void whileStat(Compiler* compiler) {
     if (!check(compiler, TOK_INDENT))
         errorAtCurrent(compiler, "expect indent after while");
     blockStat(compiler);
+    patchContinue(compiler);
     emitJumpBack(compiler, jumpBackAddress);
     patchJump(compiler, jumpwhile); 
     emitByte(compiler, OP_POP);
@@ -905,6 +929,9 @@ static void statement(Compiler* compiler) {
             break;
         case TOK_BREAK:
             breakStat(compiler);
+            break;
+        case TOK_CONTINUE:
+            continueStat(compiler);
             break;
         default:
             expressionStat(compiler);
