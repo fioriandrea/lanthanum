@@ -858,7 +858,7 @@ static void patchContinue(Compiler* compiler) {
 
 static void emitContinue(Compiler* compiler) {
     int continueAddress = emitJump(compiler, OP_JUMP);
-    pushSkip(compiler, continueAddress);
+    pushContinue(compiler, continueAddress);
 }
 
 static void continueStat(Compiler* compiler) {
