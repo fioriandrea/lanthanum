@@ -314,11 +314,16 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
     }
 }
 
+static void initSkipLoopList(SkipLoopList* sll) {
+    sll->breakCount = 0;
+    sll->continueCount = 0;
+}
+
 static void pushScope(Compiler* compiler, Scope* scope, ObjString* name) {
     scope->enclosing = compiler->scope;
+    initSkipLoopList(&scope->skipLoopList);
     scope->depth = 0;
     scope->localsCount = 0;
-    scope->skipLoopsCount = 0;
     scope->loopDepth = 0;
     scope->function = newFunction(compiler->collector);
     scope->function->name = name;
@@ -785,6 +790,40 @@ static void ifStat(Compiler* compiler) {
         patchJump(compiler, jumpAddresses[i]);
 }
 
+static inline SkipLoopList* get_skip_loop_list(Compiler* compiler) {
+    return &compiler->scope->skipLoopList;
+}
+
+static void pushBreak(Compiler* compiler, int breakAddress) {
+    SkipLoopList* sll = get_skip_loop_list(compiler); 
+    sll->breakAddresses[sll->breakCount++] = breakAddress;
+}
+
+static int popBreak(Compiler* compiler) {
+    SkipLoopList* sll = get_skip_loop_list(compiler); 
+    return sll->breakAddresses[--sll->breakCount];
+}
+
+static void patchBreak(Compiler* compiler) {
+    SkipLoopList* sll = get_skip_loop_list(compiler); 
+    if (sll->breakCount > 0)
+        patchJump(compiler, popBreak(compiler));
+}
+
+static void emitBreak(Compiler* compiler) {
+    int breakAddress = emitJump(compiler, OP_JUMP);
+    pushBreak(compiler, breakAddress);
+}
+
+static void breakStat(Compiler* compiler) {
+    if (compiler->scope->loopDepth <= 0) {
+        errorAtCurrent(compiler, "cannot use \"break\" outside of a loop");
+    }
+    advance(compiler); // skip break
+    eatError(compiler, TOK_NEW_LINE, "expected new line after \"break\"");
+    emitBreak(compiler); 
+}
+
 static void whileStat(Compiler* compiler) {
     compiler->scope->loopDepth++;
     advance(compiler); // skip while
@@ -799,6 +838,7 @@ static void whileStat(Compiler* compiler) {
     emitJumpBack(compiler, jumpBackAddress);
     patchJump(compiler, jumpwhile); 
     emitByte(compiler, OP_POP);
+    patchBreak(compiler);
     compiler->scope->loopDepth--;
 }
 
@@ -838,6 +878,9 @@ static void statement(Compiler* compiler) {
             break;
         case TOK_RET:
             retStat(compiler);
+            break;
+        case TOK_BREAK:
+            breakStat(compiler);
             break;
         default:
             expressionStat(compiler);

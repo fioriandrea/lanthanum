@@ -24,6 +24,13 @@ struct sUpvalue {
 typedef struct sLocal Local;
 typedef struct sUpvalue Upvalue;
 
+typedef struct {
+    int breakAddresses[MAX_SKIP_LOOPS];
+    int breakCount;
+    int continueAddresses[MAX_SKIP_LOOPS];
+    int continueCount;
+} SkipLoopList;
+
 struct sScope {
     struct sScope* enclosing;
     int depth;
@@ -31,8 +38,7 @@ struct sScope {
     int localsCount;
     ObjFunction* function;
     Upvalue upvalues[MAX_UPVALUES];
-    int skipLoopAddresses[MAX_SKIP_LOOPS];
-    int skipLoopsCount;
+    SkipLoopList skipLoopList;
     int loopDepth;
 };
 
