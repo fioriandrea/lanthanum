@@ -1,7 +1,7 @@
 CC=gcc
 TARGET=yasl
 SOURCEDIR=src
-SOURCES=$(shell find $(SOURCEDIR) -name '*.c')
+SOURCES=$(wildcard src/*.c) $(wildcard src/*/*.c)
 LFLAGS=-lm
 
 OBJS=$(SOURCES:.c=.o)
