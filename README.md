@@ -1,9 +1,9 @@
-# yaspl
-Yet another small programming language
+# yasl
+Yet another small language
 
 ## Description
 
-yaspl is a small, byte code interpreted, garbage collected, Python-like programming language implemented in C.
+Yasl is a small, byte code interpreted, garbage collected, Python-like programming language implemented in C.
 The language is dynamically typed, has built-in arrays and dictionaries, closures, higher order functions and other language constructs. 
 The language is basically the same as [lamp](https://github.com/fioriandrea/lamp), so the semantics is almost the same.
 
@@ -54,7 +54,7 @@ The project structure is indeed similar to the one used in the book, although th
 
 ## Types
 
-Yaspl has 7 built in types:
+Yasl has 7 built in types:
 
 ### Booleans 
 
@@ -68,7 +68,7 @@ It is treated as false in conditions.
 
 ### Numbers
 
-Every number in Yaspl is a floating point number. 
+Every number in Yasl is a floating point number. 
 Internally, numbers are rappresented as a C double.
 
 ### Strings
@@ -78,28 +78,28 @@ Since no escaping is supported inside strings, strings can span several lines.
 
 ### Maps
 
-Maps are associative arrays built-in into Yaspl. 
+Maps are associative arrays built-in into Yasl. 
 Internally they are implemented as hash tables. 
 Maps support nesting.
 
 ### Arrays
 
-Yaspl arrays are the basic container type. 
+Yasl arrays are the basic container type. 
 They can contain any kind of value and can nest.
 Internally they are implemented as dynamic arrays.
 Arrays are 0 indexed.
 
 ### Functions
 
-Yaspl functions are first class citizens. 
+Yasl functions are first class citizens. 
 They can be stored in variables, passed to other functions and returned by other functions.
-Yaspl supports closures.
+Yasl supports closures.
 This means that functions are bound together with their lexical environment.
 Any time that a function is created, it is wrapped inside a closure.
 
 ## Operators
 
-Yaspl has the following operators:
+Yasl has the following operators:
 
 ### Logical
 
