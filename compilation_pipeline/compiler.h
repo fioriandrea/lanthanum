@@ -6,6 +6,9 @@
 #include "lexer.h"
 #include "../datastructs/hash_map.h"
 
+#define MAX_LOCALS 700
+#define MAX_UPVALUES 700
+
 struct sLocal {
     Token name;
     int depth;
@@ -23,10 +26,10 @@ typedef struct sUpvalue Upvalue;
 struct sScope {
     struct sScope* enclosing;
     int depth;
-    Local locals[700]; // todo: change constant
-    int count;
+    Local locals[MAX_LOCALS];
+    int localsCount;
     ObjFunction* function;
-    Upvalue upvalues[700];
+    Upvalue upvalues[MAX_UPVALUES];
 };
 
 typedef struct sScope Scope;

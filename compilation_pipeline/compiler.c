@@ -189,7 +189,7 @@ static int identifiersEqual(Token id1, Token id2) {
 }
 
 static int indexLocal(Scope* scope, Token identifier) {
-    for (int i = scope->count - 1; i >= 0; i--) {   
+    for (int i = scope->localsCount - 1; i >= 0; i--) {   
         Local* local = &scope->locals[i];                  
         if (identifiersEqual(identifier, local->name)) {
             return i;                                           
@@ -317,7 +317,7 @@ static void emitBinary(Compiler* compiler, TokenType operator) {
 static void pushScope(Compiler* compiler, Scope* scope, ObjString* name) {
     scope->enclosing = compiler->scope;
     scope->depth = 0;
-    scope->count = 0;
+    scope->localsCount = 0;
     scope->function = newFunction(compiler->collector);
     scope->function->name = name;
     compiler->scope = scope;
@@ -336,7 +336,7 @@ static ObjFunction* popScope(Compiler* compiler) {
 }
 
 static int alreadyDeclaredLocal(Scope* scope, Token identifier) {
-    for (int i = scope->count - 1; i >= 0; i--) {
+    for (int i = scope->localsCount - 1; i >= 0; i--) {
         if (scope->locals[i].depth < scope->depth)
             return 0;
         if (identifiersEqual(scope->locals[i].name, identifier))
@@ -351,11 +351,11 @@ static void declareLocal(Compiler* compiler, Token identifier) {
         errorAtCurrent(compiler, "variable with this name already declared in this scope");
         return;
     }
-    Local* local = &scope->locals[scope->count];
+    Local* local = &scope->locals[scope->localsCount];
     local->name = identifier;
     local->isCaptured = 0;
     local->depth = -1;
-    scope->count++;
+    scope->localsCount++;
 }
 
 static void defineLocal(Compiler* compiler, Token identifier) {
@@ -612,11 +612,13 @@ static void ternaryExpression(Compiler* compiler, int canAssign) {
     logicalSumExpression(compiler, canAssign);
     if (eat(compiler, TOK_QUESTION_MARK)) {
         int skipfirst = emitJump(compiler, OP_JUMP_IF_FALSE);
+        emitByte(compiler, OP_POP);
         expression(compiler);
         int skipsecond = emitJump(compiler, OP_JUMP);
         patchJump(compiler, skipfirst);
+        emitByte(compiler, OP_POP);
         eatError(compiler, TOK_COLON, "expected \":\" inside ternary expression");
-        ternaryExpression(compiler, canAssign);
+        expression(compiler);
         patchJump(compiler, skipsecond);
     }
 }
@@ -650,12 +652,12 @@ static void startScope(Compiler* compiler) {
 
 static void endScope(Compiler* compiler) {
     Scope* scope = compiler->scope;
-    while (scope->count > 0 && scope->locals[scope->count - 1].depth == scope->depth) {
-        if (scope->locals[scope->count - 1].isCaptured)
+    while (scope->localsCount > 0 && scope->locals[scope->localsCount - 1].depth == scope->depth) {
+        if (scope->locals[scope->localsCount - 1].isCaptured)
             emitByte(compiler, OP_CLOSE_UPVALUE);
         else 
             emitByte(compiler, OP_POP);
-        scope->count--;
+        scope->localsCount--;
     }
     compiler->scope->depth--;
 }
@@ -852,7 +854,7 @@ ObjFunction* compile(Compiler* compiler, Collector* collector, char* source) {
     Scope startingScope;
     startingScope.enclosing = NULL;
     startingScope.depth = 0;
-    startingScope.count = 0;
+    startingScope.localsCount = 0;
     startingScope.function = newFunction(compiler->collector);
     compiler->scope = &startingScope;
 
