@@ -36,7 +36,7 @@ static inline uint32_t hash_string(char* key, int length) {
 
     return hash;                                           
 }     
-#define hash_pointer(p) hash_int((uint32_t) (p))
+#define hash_pointer(p) hash_int((uintptr_t) (p))
 #define hash_double(v) hash_int(float_to_bits((float) v))
 
 static inline uint32_t float_to_bits(float v) {
