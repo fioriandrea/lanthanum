@@ -1,6 +1,6 @@
 CC=gcc
 TARGET=yaspl
-SOURCEDIR=./
+SOURCEDIR=src
 SOURCES=$(shell find $(SOURCEDIR) -name '*.c')
 LFLAGS=-lm
 
