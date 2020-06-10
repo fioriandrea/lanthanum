@@ -318,6 +318,8 @@ static void pushScope(Compiler* compiler, Scope* scope, ObjString* name) {
     scope->enclosing = compiler->scope;
     scope->depth = 0;
     scope->localsCount = 0;
+    scope->skipLoopsCount = 0;
+    scope->loopDepth = 0;
     scope->function = newFunction(compiler->collector);
     scope->function->name = name;
     compiler->scope = scope;
@@ -784,6 +786,7 @@ static void ifStat(Compiler* compiler) {
 }
 
 static void whileStat(Compiler* compiler) {
+    compiler->scope->loopDepth++;
     advance(compiler); // skip while
     int jumpBackAddress = compilingChunk(compiler)->count; 
     expression(compiler);
@@ -796,6 +799,7 @@ static void whileStat(Compiler* compiler) {
     emitJumpBack(compiler, jumpBackAddress);
     patchJump(compiler, jumpwhile); 
     emitByte(compiler, OP_POP);
+    compiler->scope->loopDepth--;
 }
 
 static void retStat(Compiler* compiler) {

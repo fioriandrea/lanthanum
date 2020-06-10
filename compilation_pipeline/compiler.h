@@ -8,6 +8,7 @@
 
 #define MAX_LOCALS 700
 #define MAX_UPVALUES 700
+#define MAX_SKIP_LOOPS 700
 
 struct sLocal {
     Token name;
@@ -30,6 +31,9 @@ struct sScope {
     int localsCount;
     ObjFunction* function;
     Upvalue upvalues[MAX_UPVALUES];
+    int skipLoopAddresses[MAX_SKIP_LOOPS];
+    int skipLoopsCount;
+    int loopDepth;
 };
 
 typedef struct sScope Scope;
