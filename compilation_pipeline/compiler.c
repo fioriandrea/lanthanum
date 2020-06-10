@@ -789,6 +789,21 @@ static void ifStat(Compiler* compiler) {
         patchJump(compiler, jumpAddresses[i]);
 }
 
+static void enterLoop(Compiler* compiler) {
+    compiler->scope->loopDepth++;
+}
+
+static void exitLoop(Compiler* compiler) {
+    Scope* scope = compiler->scope;
+    // memory safe ?
+    LoopSkip* skip = &scope->loopSkips[scope->loopSkipCount - 1];
+    while (scope->loopSkipCount - 1 >= 0 && skip->loopDepth == scope->loopDepth) {
+        scope->loopSkipCount--;
+        skip = &scope->loopSkips[scope->loopSkipCount - 1];
+    }
+    compiler->scope->loopDepth--;
+}
+
 static void pushSkip(Compiler* compiler, int address, SkipType type) {
     Scope* scope = compiler->scope;
     LoopSkip* skip = &scope->loopSkips[scope->loopSkipCount];
@@ -802,14 +817,20 @@ static void pushBreak(Compiler* compiler, int breakAddress) {
     pushSkip(compiler, breakAddress, SKIP_BREAK);
 }
 
-static void patchBreak(Compiler* compiler) {
+static void patchSkip(Compiler* compiler, SkipType type) {
     Scope* scope = compiler->scope;
-    LoopSkip* skip = &scope->loopSkips[scope->loopSkipCount - 1];
-    while (scope->loopSkipCount - 1 >= 0 && skip->loopDepth == scope->loopDepth) {
-        patchJump(compiler, skip->address);
-        scope->loopSkipCount--;
-        skip = &scope->loopSkips[scope->loopSkipCount - 1];
+    int skipCount = scope->loopSkipCount;
+    LoopSkip* skip = &scope->loopSkips[skipCount - 1];
+    while (skipCount - 1 >= 0 && skip->loopDepth == scope->loopDepth) {
+        if (skip->type == type)
+            patchJump(compiler, skip->address);
+        skipCount--;
+        skip = &scope->loopSkips[skipCount - 1];
     }
+}
+
+static void patchBreak(Compiler* compiler) {
+    patchSkip(compiler, SKIP_BREAK);
 }
 
 static void emitBreak(Compiler* compiler) {
@@ -828,7 +849,7 @@ static void breakStat(Compiler* compiler) {
 }
 
 static void whileStat(Compiler* compiler) {
-    compiler->scope->loopDepth++;
+    enterLoop(compiler);
     advance(compiler); // skip while
     int jumpBackAddress = compilingChunk(compiler)->count; 
     expression(compiler);
@@ -842,7 +863,7 @@ static void whileStat(Compiler* compiler) {
     patchJump(compiler, jumpwhile); 
     emitByte(compiler, OP_POP);
     patchBreak(compiler);
-    compiler->scope->loopDepth--;
+    exitLoop(compiler);
 }
 
 static void retStat(Compiler* compiler) {
