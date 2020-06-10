@@ -6,7 +6,6 @@ LFLAGS=-lm
 
 OBJS=$(SOURCES:.c=.o)
 
-# the target is obtained linking all .o files
 all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJS)
