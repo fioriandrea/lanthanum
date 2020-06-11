@@ -1,8 +1,98 @@
 #ifndef value_h
 #define value_h
 
-#include "object.h"
 #include "../commontypes.h"
+#include <stdarg.h>
+
+typedef struct sValue Value;
+typedef struct sValueArray ValueArray;
+
+typedef enum {
+    OBJ_STRING,
+    OBJ_FUNCTION,
+    OBJ_CLOSURE,
+    OBJ_UPVALUE,
+    OBJ_ARRAY,
+    OBJ_DICT,
+    OBJ_ERROR,
+} ObjType;
+
+struct sObj {
+    ObjType type;
+    uint32_t hash;
+    int marked;
+    struct sObj* next;
+};
+
+typedef struct sObj Obj;
+
+typedef struct {
+    Obj obj;
+    int length;
+    char* chars;
+} ObjString;
+
+typedef struct {
+    Obj obj;
+    int arity;
+    ObjString* name;
+    Bytecode* bytecode;
+    int upvalueCount;
+} ObjFunction;
+
+struct sObjUpvalue {
+    Obj obj;
+    Value* value;
+    Value* closed;
+    struct sObjUpvalue* next;
+};
+
+typedef struct sObjUpvalue ObjUpvalue;
+
+typedef struct {
+    Obj obj;
+    ObjFunction* function;
+    ObjUpvalue** upvalues;
+    int upvalueCount;
+} ObjClosure;
+
+typedef struct {
+    Obj obj;
+    ObjString* message;
+    Value* payload;
+} ObjError;
+
+typedef struct {
+    Obj obj;
+    ValueArray* values;
+} ObjArray;
+
+typedef struct {
+    Obj obj;
+    HashMap* map;
+} ObjDict;
+
+ObjString* copyString(Collector* collector, char* chars, int length);
+ObjString* takeString(Collector* collector, char* chars, int length);
+ObjFunction* newFunction(Collector* collector);
+ObjClosure* newClosure(Collector* collector, ObjFunction* function);
+ObjUpvalue* newUpvalue(Collector* collector, Value* value);
+ObjArray* newArray(Collector* collector);
+ObjDict* newDict(Collector* collector);
+ObjError* newError(Collector* collector, char* first, ...);
+void closeUpvalue(ObjUpvalue* upvalue);
+void freeObject(Collector* collector, Obj* object);
+void markObject(Collector* collector, Obj* obj);
+void blackenObject(Collector* collector, Obj* obj);
+void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result);
+void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value, Value* result);
+Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
+void arrayPush(Collector* collector, ObjArray* array, Value* value);
+int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value);
+int dictGet(ObjDict* dict, Value* key, Value* result);
+ObjString* concatenateCharArrays(Collector* collector, char* first, ...);
+ObjString* vconcatenateCharArrays(Collector* collector, char* first, va_list rest);
+ObjString* objectToString(Collector* collector, Obj* obj);
 
 typedef enum {
     VALUE_NIHL,
@@ -29,10 +119,10 @@ struct sValue {
 #define as_cnumber(value) ((value).as.number)
 #define as_obj(value) ((value).as.obj)
 
-#define to_vbool(cbool) ((struct sValue) {VALUE_BOOL, {.boolean = (cbool)}})
-#define to_vnihl() ((struct sValue) {VALUE_NIHL, {.number = 0}}) 
-#define to_vnumber(cnumber) ((struct sValue) {VALUE_NUMBER, {.number = (cnumber)}})
-#define to_vobj(object) ((struct sValue) {VALUE_OBJ, {.obj = ((Obj*) object)}})
+#define to_vbool(cbool) ((Value) {VALUE_BOOL, {.boolean = (cbool)}})
+#define to_vnihl() ((Value) {VALUE_NIHL, {.number = 0}}) 
+#define to_vnumber(cnumber) ((Value) {VALUE_NUMBER, {.number = (cnumber)}})
+#define to_vobj(object) ((Value) {VALUE_OBJ, {.obj = ((Obj*) object)}})
 
 #define is_string(value) isObjType(value, OBJ_STRING)
 #define is_function(value) isObjType(value, OBJ_FUNCTION)
@@ -51,40 +141,41 @@ struct sValue {
 #define as_dict(value) ((ObjDict*) as_obj(value))
 #define as_cstring(value) (as_string(value)->chars)
 
-int isObjType(struct sValue value, ObjType type);
+int isObjType(Value value, ObjType type);
 
 struct sValueArray {
     int count;
     int capacity;
-    struct sValue* values;
+    Value* values;
 };
 
 #define hash_bool(b) hash_int(as_cbool(b) + 31)
 #define hash_nihl hash_int(42)
 #define hash_number(n) hash_double(as_cnumber(n))
 
-uint32_t hashValue(struct sValue val);
+uint32_t hashValue(Value val);
 
-static inline uint32_t get_value_hash(struct sValue val) {
+static inline uint32_t get_value_hash(Value val) {
     return is_obj(val) ? as_obj(val)->hash : hashValue(val);
 }
 
 void initValueArray(ValueArray* valarray);
-int writeValueArray(Collector* collector, struct sValueArray* valarray, struct sValue value);
-void freeValueArray(Collector* collector, struct sValueArray* valarray);
-int isTruthy(struct sValue val); 
-int valueInteger(struct sValue value);
-int valuesIntegers(struct sValue a, struct sValue b); 
-int valuesEqual(struct sValue a, struct sValue b); 
-int valuesConcatenable(struct sValue a, struct sValue b); 
-int valuesNumbers(struct sValue a, struct sValue b); 
-struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b); 
-void printValue(Collector* collector, struct sValue val);
-void markValueArray(Collector* collector, struct sValueArray* values);
-void markValue(Collector* collector, struct sValue value);
-Value indexGetValue(Collector* collector, struct sValue arrayLike, struct sValue index);
-Value indexSetValue(Collector* collector, struct sValue arrayLike, struct sValue index, struct sValue value);
-ObjString* valueToString(Collector* collector, struct sValue value);
-char* valueToCharArray(Collector* collector, struct sValue value);
+int writeValueArray(Collector* collector, ValueArray* valarray, Value value);
+void freeValueArray(Collector* collector, ValueArray* valarray);
+int isTruthy(Value val); 
+int valueInteger(Value value);
+int valuesIntegers(Value a, Value b); 
+int valuesEqual(Value a, Value b); 
+int valuesConcatenable(Value a, Value b); 
+int valuesNumbers(Value a, Value b); 
+Value concatenate(Collector* collector, Value a, Value b); 
+void printValue(Collector* collector, Value val);
+void markValueArray(Collector* collector, ValueArray* values);
+void markValue(Collector* collector, Value value);
+Value indexGetValue(Collector* collector, Value arrayLike, Value index);
+Value indexSetValue(Collector* collector, Value arrayLike, Value index, Value value);
+ObjString* valueToString(Collector* collector, Value value);
+char* valueToCharArray(Collector* collector, Value value);
+
 
 #endif

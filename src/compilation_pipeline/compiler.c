@@ -6,7 +6,6 @@
 #include "../datastructs/bytecode.h"
 #include "../datastructs/value.h"
 #include "../util.h"
-#include "../datastructs/object.h"
 #include "../debug/debug_switches.h"
 
 #define MAX_BRANCHES 200

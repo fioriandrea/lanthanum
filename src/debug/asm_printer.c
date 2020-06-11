@@ -4,7 +4,6 @@
 #include "../util.h"
 #include "../commontypes.h"
 #include "../datastructs/value.h"
-#include "../datastructs/object.h"
 
 static int printSimpleInstruction(char* instname, int offset) {
     printf("%s\n", instname);
