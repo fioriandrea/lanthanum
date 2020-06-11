@@ -5,7 +5,7 @@ Yet another small language
 
 Yasl is a small, byte code interpreted, garbage collected, Python-like programming language implemented in C.
 The language is dynamically typed, has built-in arrays and dictionaries, closures, higher order functions and other language constructs. 
-The language is an improved version of[lamp](https://github.com/fioriandrea/lamp), so the languages are quite similar. 
+The language is an improved version of [lamp](https://github.com/fioriandrea/lamp), so the languages are quite similar. 
 
 ## Project Structure
 
