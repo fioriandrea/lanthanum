@@ -1,54 +1,54 @@
-#include "chunk.h"
+#include "bytecode.h"
 #include "../util.h"
 #include "../memory.h"
 
-void initChunk(struct sChunk* chunk) {
-    chunk->count = 0;
-    chunk->capacity = 0;
-    chunk->code = NULL;
-    initValueArray(&chunk->constants); 
-    initLineArray(&chunk->lines);
+void initBytecode(struct sBytecode* bytecode) {
+    bytecode->count = 0;
+    bytecode->capacity = 0;
+    bytecode->code = NULL;
+    initValueArray(&bytecode->constants); 
+    initLineArray(&bytecode->lines);
 }
 
-int writeChunk(Collector* collector, struct sChunk* chunk, uint8_t byte, int line) {
-    if (chunk->count + 1 >= chunk->capacity) {
-        int newcap = compute_capacity(chunk->capacity);
-        chunk->code = grow_array(collector, uint8_t, chunk->code, chunk->capacity, newcap);
-        chunk->capacity = newcap; 
+int writeBytecode(Collector* collector, struct sBytecode* bytecode, uint8_t byte, int line) {
+    if (bytecode->count + 1 >= bytecode->capacity) {
+        int newcap = compute_capacity(bytecode->capacity);
+        bytecode->code = grow_array(collector, uint8_t, bytecode->code, bytecode->capacity, newcap);
+        bytecode->capacity = newcap; 
     }     
-    chunk->code[chunk->count++] = byte;
-    writeLineArray(collector, &chunk->lines, line);
-    return chunk->count - 1;
+    bytecode->code[bytecode->count++] = byte;
+    writeLineArray(collector, &bytecode->lines, line);
+    return bytecode->count - 1;
 }
 
-void freeChunk(Collector* collector, struct sChunk* chunk) {
-    free_array(collector, uint8_t, chunk->code, chunk->capacity);
-    freeValueArray(collector, &chunk->constants);
-    freeLineArray(collector, &chunk->lines);
-    initChunk(chunk);
+void freeBytecode(Collector* collector, struct sBytecode* bytecode) {
+    free_array(collector, uint8_t, bytecode->code, bytecode->capacity);
+    freeValueArray(collector, &bytecode->constants);
+    freeLineArray(collector, &bytecode->lines);
+    initBytecode(bytecode);
 }
 
-int writeVariableSizeOp(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, uint16_t argument, int line) {
+int writeVariableSizeOp(Collector* collector, struct sBytecode* bytecode, OpCode oplong, OpCode opshort, uint16_t argument, int line) {
     if (argument > UINT8_MAX) {
         SplittedLong lng = split_long(argument);
-        writeChunk(collector, chunk, oplong, line);
-        writeChunk(collector, chunk, (uint8_t) lng.b0, line);
-        writeChunk(collector, chunk, (uint8_t) lng.b1, line);
+        writeBytecode(collector, bytecode, oplong, line);
+        writeBytecode(collector, bytecode, (uint8_t) lng.b0, line);
+        writeBytecode(collector, bytecode, (uint8_t) lng.b1, line);
     } else {
-        writeChunk(collector, chunk, opshort, line);
-        writeChunk(collector, chunk, (uint8_t) argument, line);
+        writeBytecode(collector, bytecode, opshort, line);
+        writeBytecode(collector, bytecode, (uint8_t) argument, line);
     }
-    return chunk->count - 1;
+    return bytecode->count - 1;
 }
 
-int writeAddressableInstruction(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, Value val, int line) {
+int writeAddressableInstruction(Collector* collector, struct sBytecode* bytecode, OpCode oplong, OpCode opshort, Value val, int line) {
     pushSafe(collector, val);
-    uint16_t address = (uint16_t) writeValueArray(collector, &chunk->constants, val);
-    int result = writeVariableSizeOp(collector, chunk, oplong, opshort, address, line);
+    uint16_t address = (uint16_t) writeValueArray(collector, &bytecode->constants, val);
+    int result = writeVariableSizeOp(collector, bytecode, oplong, opshort, address, line);
     popSafe(collector);
     return result;
 }
 
-void markChunk(Collector* collector, struct sChunk* chunk) {
-    markValueArray(collector, &chunk->constants);
+void markBytecode(Collector* collector, struct sBytecode* bytecode) {
+    markValueArray(collector, &bytecode->constants);
 }
