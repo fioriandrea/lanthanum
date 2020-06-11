@@ -114,7 +114,7 @@ static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjStr
     
     pushSafe(collector, to_vobj(sa));
     pushSafe(collector, to_vobj(sb));
-    char* chars = allocate_block(collector, char, length);
+    char* chars = allocate_block(collector, char, length + 1);
     popSafe(collector);
     popSafe(collector);
     memcpy(chars, sa->chars, sa->length);
