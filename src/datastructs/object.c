@@ -185,17 +185,13 @@ ObjError* newError(Collector* collector, char* first, ...) {
         partial = va_arg(args, char*);
         if (partial == NULL)
             break;
-        if (message == NULL) {
-            message = copyString(collector, partial, strlen(partial));
-        } else {
-            ObjString* sa = message;
-            pushSafe(collector, to_vobj(sa));
-            ObjString* sb = copyString(collector, partial, strlen(partial));
-            pushSafe(collector, to_vobj(sb));
-            message = concatenateStrings(collector, sa, sb);
-            popSafe(collector);
-            popSafe(collector);
-        }
+        ObjString* sa = message;
+        pushSafe(collector, to_vobj(sa));
+        ObjString* sb = copyString(collector, partial, strlen(partial));
+        pushSafe(collector, to_vobj(sb));
+        message = concatenateStrings(collector, sa, sb);
+        popSafe(collector);
+        popSafe(collector);
     }
     va_end(args);
     pushSafe(collector, to_vobj(message));
