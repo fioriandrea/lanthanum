@@ -9,7 +9,7 @@ The language is an improved version of [lamp](https://github.com/fioriandrea/lam
 
 ## Project Structure
 
-The code behind Yasl is inspired by [Wren](https://github.com/wren-lang/wren).
+The code behind Yasl is inspired by [Wren code](https://github.com/wren-lang/wren).
 The project structure is indeed similar to the one used in Wren, although there are quite a few differences.
 The project is a work in progress project.
 
