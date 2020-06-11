@@ -4,9 +4,9 @@
 #include "../datastructs/value.h"
 
 void printEntry(Entry* entry) {
-    printValue(entry->key);
+    dumpValue(entry->key);
     printf(" => ");
-    printValue(entry->value);
+    dumpValue(entry->value);
 }
 
 static void printBucket(Entry* head) {

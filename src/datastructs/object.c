@@ -1,6 +1,5 @@
 #include <string.h>
 #include <stdio.h>
-#include <stdarg.h>
 
 #include "object.h"
 #include "../util.h"
@@ -32,7 +31,7 @@ Obj* allocateObj(Collector* collector, ObjType type, size_t size) {
 #ifdef TRACE_OBJECT_LIST
     printf("OBJLIST\n");
     for (Obj* o = collector->objects; o != NULL; o = o->next) {
-        printObj(o);
+        dumpObj(o);
         printf(", ");
     }
     printf("\n");
@@ -113,7 +112,15 @@ static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjStr
     return takeString(collector, chars, length);
 }
 
-static ObjString* concatenateMultipleStrings(Collector* collector, char* first, va_list rest) {
+ObjString* concatenateCharArrays(Collector* collector, char* first, ...) {
+    va_list args;                                     
+    va_start(args, first);
+    ObjString* result = vconcatenateCharArrays(collector, first, args); 
+    va_end(args);
+    return result;
+}
+
+ObjString* vconcatenateCharArrays(Collector* collector, char* first, va_list rest) {
     ObjString* result = copyString(collector, first, strlen(first)); 
     char* partial = NULL;
     for (;;) {
@@ -195,7 +202,7 @@ ObjDict* newDict(Collector* collector) {
 ObjError* newError(Collector* collector, char* first, ...) {
     va_list args;                                     
     va_start(args, first);
-    ObjString* message = concatenateMultipleStrings(collector, first, args); 
+    ObjString* message = vconcatenateCharArrays(collector, first, args); 
     va_end(args);
 
     pushSafe(collector, to_vobj(message));
@@ -215,7 +222,7 @@ void closeUpvalue(ObjUpvalue* upvalue) {
 void freeObject(Collector* collector, Obj* object) {
 #ifdef TRACE_GC
     printf("(pointer %p) free %s object type [", (void*)object, string_type(object->type));
-    printObj(object);
+    dumpObj(object);
     printf("]\n");
 #endif
     switch (object->type) {                                 
@@ -275,94 +282,10 @@ void freeObject(Collector* collector, Obj* object) {
     }
 }
 
-static void printOrSelf(Obj* container, Value value) {
-    if (is_obj(value) && as_obj(value) == container)
-        printf("<self>");
-    else
-        printValue(value);
-}
-
-void printObj(Obj* obj) {
-    switch (obj->type) {
-        case OBJ_STRING:
-            printf("%s", ((ObjString*) obj)->chars);
-            break;
-        case OBJ_FUNCTION:
-            {
-                ObjFunction* function = (ObjFunction*) obj;
-                if (function->name == NULL)
-                    printf("<main script>");
-                else
-                    printf("<%s function>", function->name->chars);
-                break;
-            }
-        case OBJ_CLOSURE:
-            {
-                ObjClosure* closure = (ObjClosure*) obj;
-                printf("closure ");
-                printObj((Obj*) closure->function);
-                break;
-            }
-        case OBJ_UPVALUE:
-            {
-                ObjUpvalue* upvalue = (ObjUpvalue*) obj;
-                printf("upvalue ");
-                printValue(*upvalue->value);
-                break;
-            }
-        case OBJ_ERROR:
-            {
-                ObjError* error = (ObjError*) obj;
-                printObj((Obj*) error->message);
-                if (error->payload != NULL) {
-                    printf(" {");
-                    printValue(*error->payload);
-                    printf("}");
-                }
-                break;
-            }
-        case OBJ_ARRAY:
-            {
-                ObjArray* array = (ObjArray*) obj;
-                printf("[");
-                for (int i = 0; i < array->values->count - 1; i++) {
-                    Value val = array->values->values[i];
-                    printOrSelf(obj, val);
-                    printf(" ,");
-                }
-                if (array->values->count > 0) {
-                    int index = array->values->count - 1;
-                    Value val = array->values->values[index];
-                    printOrSelf(obj, val);
-                }
-                printf("]");
-                break;
-            }
-        case OBJ_DICT:
-            {
-                ObjDict* dict = (ObjDict*) obj;
-                HashMap* map = dict->map;
-                printf("{");
-                for (int i = 0; i < map->capacity; i++) {
-                    Entry* entry = map->entries[i];
-                    while (entry != NULL) {
-                        printOrSelf(obj, entry->key);
-                        printf(" => ");
-                        printOrSelf(obj, entry->value);
-                        printf(",");
-                        entry = entry->next;
-                    }
-                }
-                printf("}");
-                break;
-            }
-    }
-}
-
 void blackenObject(Collector* collector, Obj* obj) {
 #ifdef TRACE_GC                     
     printf("(pointer %p) blacken ", (void*) obj); 
-    printValue(to_vobj(obj));          
+    dumpObj(obj);          
     printf("\n");                         
 #endif 
     switch (obj->type) {
@@ -419,7 +342,7 @@ void markObject(Collector* collector, Obj* obj) {
         return;
 #ifdef TRACE_GC
     printf("(pointer %p) mark ", (void*) obj);
-    printObj(obj);      
+    dumpObj(obj);      
     printf("\n");   
 #endif
     if (obj->marked)
@@ -520,6 +443,84 @@ void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value
             {
                 *result = to_vobj(newError(collector, "object index not assignable", NULL));
                 break;
+            }
+    }
+}
+
+static ObjString* strOrSelf(Collector* collector, Obj* container, Value value) {
+    if (is_obj(value) && as_obj(value) == container)
+        return concatenateCharArrays(collector, "<self>", NULL);
+    else
+        return valueToString(collector, value);
+}
+
+ObjString* objectToString(Collector* collector, Obj* obj) {
+    switch (obj->type) {
+        case OBJ_STRING:
+            return ((ObjString*) obj);
+        case OBJ_FUNCTION:
+            {
+                ObjFunction* function = (ObjFunction*) obj;
+                if (function->name == NULL)
+                    return concatenateCharArrays(collector, "<init>", NULL);
+                else
+                    return concatenateCharArrays(collector, "<", function->name->chars, " function>", NULL);
+            }
+        case OBJ_CLOSURE:
+            {
+                ObjClosure* closure = (ObjClosure*) obj;
+                return objectToString(collector, (Obj*) closure->function);
+            }
+        case OBJ_UPVALUE:
+            {
+                ObjUpvalue* upvalue = (ObjUpvalue*) obj;
+                return concatenateCharArrays(collector, "upvalue ", 
+                        valueToCharArray(collector, *upvalue->value), NULL);
+            }
+        case OBJ_ERROR:
+            {
+                ObjError* error = (ObjError*) obj;
+                ObjString* result = error->message;
+                if (error->payload != NULL) {
+                    return concatenateCharArrays(collector, " (", 
+                            valueToCharArray(collector, *error->payload), ")", NULL);
+                }
+                return result;
+            }
+        case OBJ_ARRAY:
+            {
+                ObjArray* array = (ObjArray*) obj;
+                ObjString* result = concatenateCharArrays(collector, "[", NULL);
+                for (int i = 0; i < array->values->count - 1; i++) {
+                    Value val = array->values->values[i];
+                    result = concatenateCharArrays(collector, result->chars,
+                            strOrSelf(collector, obj, val)->chars, ",", NULL);
+                }
+                if (array->values->count > 0) {
+                    int index = array->values->count - 1;
+                    Value val = array->values->values[index];
+                    result = concatenateCharArrays(collector, result->chars,
+                            strOrSelf(collector, obj, val)->chars, NULL);
+                }
+                result = concatenateCharArrays(collector, result->chars, "]", NULL);
+                return result;
+            }
+        case OBJ_DICT:
+            {
+                ObjDict* dict = (ObjDict*) obj;
+                ObjString* result = concatenateCharArrays(collector, "{", NULL);
+                HashMap* map = dict->map;
+                for (int i = 0; i < map->capacity; i++) {
+                    Entry* entry = map->entries[i];
+                    while (entry != NULL) {
+                        result = concatenateCharArrays(collector, result->chars, 
+                                strOrSelf(collector, obj, entry->key)->chars, " => ",
+                                strOrSelf(collector, obj, entry->value)->chars, ",", NULL);
+                        entry = entry->next;
+                    }
+                }
+                result = concatenateCharArrays(collector, result->chars, "}", NULL);
+                return result;
             }
     }
 }

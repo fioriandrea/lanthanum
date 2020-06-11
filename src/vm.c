@@ -107,7 +107,7 @@ static int vmRun(VM* vm) {
         printInstruction(currentFrame->closure->function->bytecode, *currentFrame->pc, (int) (currentFrame->pc - currentFrame->closure->function->bytecode->code));
         printf("stack: [");
         for (Value* start = vm->stack; start < vm->sp; start++) {
-            printValue(*start);
+            dumpValue(*start);
             printf(" | ");
         }
         printf("]\n");
@@ -116,7 +116,7 @@ static int vmRun(VM* vm) {
 #ifdef TRACE_OPEN_UPVALUES
         printf("OPEN UPVALUES\n");
         for (ObjUpvalue* uv = vm->openUpvalues; uv != NULL; uv = uv->next) {
-            printObj((Obj*) uv);
+            dumpValue(to_vobj(uv));
             printf("\n");
         }
         printf("END OPEN UPVALUES\n");
@@ -524,7 +524,7 @@ static int vmRun(VM* vm) {
             case OP_PRINT:
                 {
                     Value val = vmPeek(vm, 0);
-                    printValue(val);
+                    printValue(vm->collector, val);
                     printf("\n");
                     vmPop(vm);
                     break;

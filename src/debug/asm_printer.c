@@ -15,7 +15,7 @@ static int printAddressedInstruction(char* instname, Bytecode* bytecode, int off
     uint8_t address = bytecode->code[offset + 1];
     Value* val = &bytecode->constants.values[address];
     printf("%s [%d] '", instname, address);
-    printValue(*val);
+    dumpValue(*val);
     printf("'\n");
     return offset + 2;
 }
@@ -24,7 +24,7 @@ static int printAddressedLongInstruction(char* instname, Bytecode* bytecode, int
     uint16_t address = join_bytes(bytecode->code[offset + 1], bytecode->code[offset + 2]);
     Value* val = &bytecode->constants.values[address];
     printf("%s [%d] '", instname, address);
-    printValue(*val);
+    dumpValue(*val);
     printf("'\n");
     return offset + 3;
 }
@@ -61,7 +61,7 @@ int printInstruction(Bytecode* bytecode, OpCode code, int offset) {
                  uint16_t address = l ? join_bytes(bytecode->code[offset++], bytecode->code[offset++]) : bytecode->code[offset++]; \
                  Value funVal = bytecode->constants.values[address]; \
                  printf("%s [%d] '", #op, address); \
-                 printValue(funVal); \
+                 dumpValue(funVal); \
                  printf("'\n"); \
                  ObjFunction* function = as_function(funVal); \
                  for (int i = 0; i < function->upvalueCount; i++) { \

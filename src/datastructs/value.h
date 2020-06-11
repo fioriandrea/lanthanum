@@ -79,10 +79,12 @@ int valuesEqual(struct sValue a, struct sValue b);
 int valuesConcatenable(struct sValue a, struct sValue b); 
 int valuesNumbers(struct sValue a, struct sValue b); 
 struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b); 
-void printValue(struct sValue val);
+void printValue(Collector* collector, struct sValue val);
 void markValueArray(Collector* collector, struct sValueArray* values);
 void markValue(Collector* collector, struct sValue value);
 Value indexGetValue(Collector* collector, struct sValue arrayLike, struct sValue index);
 Value indexSetValue(Collector* collector, struct sValue arrayLike, struct sValue index, struct sValue value);
+ObjString* valueToString(Collector* collector, struct sValue value);
+char* valueToCharArray(Collector* collector, struct sValue value);
 
 #endif

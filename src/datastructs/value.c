@@ -79,21 +79,8 @@ struct sValue concatenate(Collector* collector, struct sValue a, struct sValue b
     return to_vobj(concatenateObjects(collector, as_obj(a), as_obj(b)));
 }
 
-void printValue(struct sValue val) {
-    switch (val.type) {
-        case VALUE_BOOL:
-            printf("%s", as_cbool(val) ? "true" : "false");
-            break;
-        case VALUE_NUMBER:
-            printf("%g", as_cnumber(val));
-            break;
-        case VALUE_NIHL:
-            printf("nihl");
-            break;
-        case VALUE_OBJ:
-            printObj(as_obj(val));
-            break;
-    }
+void printValue(Collector* collector, struct sValue val) {
+    printf("%s", valueToCharArray(collector, val)); 
 }
 
 void markValue(Collector* collector, struct sValue value) {
@@ -125,4 +112,27 @@ Value indexSetValue(Collector* collector, struct sValue arrayLike, struct sValue
     Value result;
     indexSetObject(collector, arrayObj, &index, &value, &result);
     return result;
+}
+
+ObjString* valueToString(Collector* collector, struct sValue value) {
+    switch (value.type) {
+        case VALUE_BOOL:
+            return concatenateCharArrays(collector, as_cbool(value) ? "true" : "false", NULL);
+        case VALUE_NUMBER:
+            {
+#define MAX_DOUBLE_STR_LEN 80
+                char numstr[MAX_DOUBLE_STR_LEN];
+                sprintf(numstr, "%g", as_cnumber(value));
+                return concatenateCharArrays(collector, numstr, NULL);
+#undef MAX_DOUBLE_STR_LEN
+            }
+        case VALUE_NIHL:
+            return concatenateCharArrays(collector, "nihl", NULL);
+        case VALUE_OBJ:
+            return objectToString(collector, as_obj(value));
+    }
+}
+
+char* valueToCharArray(Collector* collector, struct sValue value) {
+    return valueToString(collector, value)->chars;
 }

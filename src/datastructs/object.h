@@ -1,6 +1,8 @@
 #ifndef object_h
 #define object_h
 
+#include <stdarg.h>
+
 #include "../commontypes.h"
 
 typedef enum {
@@ -78,7 +80,6 @@ ObjDict* newDict(Collector* collector);
 ObjError* newError(Collector* collector, char* first, ...);
 void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
-void printObj(Obj* obj);
 void markObject(Collector* collector, Obj* obj);
 void blackenObject(Collector* collector, Obj* obj);
 void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result);
@@ -87,5 +88,8 @@ Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
 void arrayPush(Collector* collector, ObjArray* array, Value* value);
 int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value);
 int dictGet(ObjDict* dict, Value* key, Value* result);
+ObjString* concatenateCharArrays(Collector* collector, char* first, ...);
+ObjString* vconcatenateCharArrays(Collector* collector, char* first, va_list rest);
+ObjString* objectToString(Collector* collector, Obj* obj);
 
 #endif
