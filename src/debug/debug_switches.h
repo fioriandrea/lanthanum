@@ -11,7 +11,7 @@
 #include "map_printer.h"
 #include "value_dump.h"
 
-#define STRESS_GC
+//#define STRESS_GC
 //#define TRACE_GC
 //#define TRACE_OBJECT_LIST
 //#define TRACE_TOKENS 

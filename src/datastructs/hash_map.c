@@ -49,8 +49,10 @@ static void growMap(Collector* collector, struct sHashMap* map) {
     for (int i = 0; i < map->capacity; i++) {
         Entry* head = map->entries[i];
         while (head != NULL) {
+            Entry* toFree = head;
             entriesPut(collector, newentries, newcap, head->key, head->value);
             head = head->next;
+            free_pointer(collector, toFree, sizeof(Entry));
         }
     }
     free_array(collector, Entry*, map->entries, map->capacity);
@@ -166,10 +168,9 @@ void removeUnmarkedKeys(Collector* collector, struct sHashMap* map) {
                 previous->next = current->next;
                 free_pointer(collector, current, sizeof(Entry));
                 current = previous->next;
-            } else { 
-                previous = previous->next;
-                if (current != NULL)
-                    current = current->next;
+            } else {
+                previous = current;
+                current = current->next;
             }
         }
         map->entries[i] = dummy->next;
