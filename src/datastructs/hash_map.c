@@ -166,10 +166,11 @@ void removeUnmarkedKeys(Collector* collector, struct sHashMap* map) {
                 previous->next = current->next;
                 free_pointer(collector, current, sizeof(Entry));
                 current = previous->next;
-            } 
-            previous = previous->next;
-            if (current != NULL)
-                current = current->next;
+            } else { 
+                previous = previous->next;
+                if (current != NULL)
+                    current = current->next;
+            }
         }
         map->entries[i] = dummy->next;
     }
