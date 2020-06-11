@@ -11,46 +11,6 @@
 
 #define MAX_BRANCHES 200
 
-/*
-   program -> statement* EOF
-   statement -> print | let | if | while | func | ret | break | continue | expressionStat
-   print -> 'print' expression NEW_LINE
-   let -> 'let' IDENTIFIER '=' expression NEW_LINE
-   if -> 'if' expression block ('elif' expression block)* ('else' block)?
-   while -> 'while' expression block
-   func -> 'func' IDENTIFIER '(' paramList ')' block
-   ret -> 'ret' (expression)? NEW_LINE
-   break -> 'break' NEW_LINE
-   continue -> 'continue' NEW_LINE
-   expressionStat -> expression NEW_LINE
-   block -> INDENT statement* DEDENT
-
-   expression -> comma
-   comma -> nonCommaExpr (',' nonCommaExpr)*
-   nonCommaExpr -> assign
-   assign -> ternary '=' expression
-   ternary -> logicalSum ('?' ternary : ternary)?
-   logicalSum -> and (('or' | 'xor') and)*
-   and -> equal ('and' equal)*
-   equal -> comparison (('==' | '!=') comparison)*
-   comparison -> sum (('<' | '<=' | '>' | '>=') sum)*
-   sum -> mult (('+' | '-' | '++') mult)*
-   mult -> pow (('*' | '/' | '%') pow)*
-   pow -> unary | unary '^' pow
-   unary -> call | ('-' | '!') unary
-   call -> functionCall | indexing
-   functionCall -> primary '(' argList ')'
-   argList -> nonCommaExpr (',' nonCommaExpr)* | ''
-   indexing -> primary '[' expression ']'
-   primary -> basic | '(' expression ')' | array | map
-   basic -> STRING | NUMBER | TRUE | FALSE | NIHL | IDENTIFIER
-   array -> '[' arrayList ']'
-   arrayList -> nonCommaExpr (',' nonCommaExpr)* | ''
-   map -> '{' mapList '}'
-   mapList -> mapElement (',' mapElement) | ''
-   mapElement -> nonCommaExpr '=>' nonCommaExpr
-   */
-
 #define standard_binary_expression(name, next, condition) \
     static void name(Compiler* compiler, int canAssign) { \
         TokenType operator; \
