@@ -1,6 +1,8 @@
 #ifndef value_dump
 #define value_dump
 
+#include <stdio.h>
+
 #include "../datastructs/value.h"
 
 static void dumpObj(Obj* obj);

@@ -9,6 +9,7 @@
 #include "./datastructs/value.h"
 #include "./compilation_pipeline/compiler.h"
 #include "./debug/debug_switches.h"
+#include "./datastructs/value_operations.h"
 
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1

@@ -84,15 +84,6 @@ void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
 void markObject(Collector* collector, Obj* obj);
 void blackenObject(Collector* collector, Obj* obj);
-void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result);
-void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value, Value* result);
-Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
-void arrayPush(Collector* collector, ObjArray* array, Value* value);
-int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value);
-int dictGet(ObjDict* dict, Value* key, Value* result);
-ObjString* concatenateCharArrays(Collector* collector, char* first, ...);
-ObjString* vconcatenateCharArrays(Collector* collector, char* first, va_list rest);
-ObjString* objectToString(Collector* collector, Obj* obj);
 
 typedef enum {
     VALUE_NIHL,
@@ -162,20 +153,7 @@ static inline uint32_t get_value_hash(Value val) {
 void initValueArray(ValueArray* valarray);
 int writeValueArray(Collector* collector, ValueArray* valarray, Value value);
 void freeValueArray(Collector* collector, ValueArray* valarray);
-int isTruthy(Value val); 
-int valueInteger(Value value);
-int valuesIntegers(Value a, Value b); 
-int valuesEqual(Value a, Value b); 
-int valuesConcatenable(Value a, Value b); 
-int valuesNumbers(Value a, Value b); 
-Value concatenate(Collector* collector, Value a, Value b); 
-void printValue(Collector* collector, Value val);
 void markValueArray(Collector* collector, ValueArray* values);
 void markValue(Collector* collector, Value value);
-Value indexGetValue(Collector* collector, Value arrayLike, Value index);
-Value indexSetValue(Collector* collector, Value arrayLike, Value index, Value value);
-ObjString* valueToString(Collector* collector, Value value);
-char* valueToCharArray(Collector* collector, Value value);
-
 
 #endif

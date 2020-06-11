@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "hash_map.h"
+#include "value_operations.h"
 #include "../memory.h"
 #include "../util.h"
 #include "../debug/debug_switches.h"
