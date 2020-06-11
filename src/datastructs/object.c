@@ -113,6 +113,23 @@ static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjStr
     return takeString(collector, chars, length);
 }
 
+static ObjString* concatenateMultipleStrings(Collector* collector, char* first, va_list rest) {
+    ObjString* result = copyString(collector, first, strlen(first)); 
+    char* partial = NULL;
+    for (;;) {
+        partial = va_arg(rest, char*);
+        if (partial == NULL)
+            break;
+        ObjString* sa = result;
+        pushSafe(collector, to_vobj(sa));
+        ObjString* sb = copyString(collector, partial, strlen(partial));
+        pushSafe(collector, to_vobj(sb));
+        result = concatenateStrings(collector, sa, sb);
+        popSafe(collector);
+        popSafe(collector);
+    }
+    return result;
+}
 
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b) {
     if (a->type != b->type) {
@@ -178,22 +195,9 @@ ObjDict* newDict(Collector* collector) {
 ObjError* newError(Collector* collector, char* first, ...) {
     va_list args;                                     
     va_start(args, first);
-    
-    ObjString* message = copyString(collector, first, strlen(first)); 
-    char* partial = NULL;
-    for (;;) {
-        partial = va_arg(args, char*);
-        if (partial == NULL)
-            break;
-        ObjString* sa = message;
-        pushSafe(collector, to_vobj(sa));
-        ObjString* sb = copyString(collector, partial, strlen(partial));
-        pushSafe(collector, to_vobj(sb));
-        message = concatenateStrings(collector, sa, sb);
-        popSafe(collector);
-        popSafe(collector);
-    }
+    ObjString* message = concatenateMultipleStrings(collector, first, args); 
     va_end(args);
+
     pushSafe(collector, to_vobj(message));
     ObjError* error = allocate_obj(collector, ObjError, OBJ_ERROR);
     popSafe(collector);
