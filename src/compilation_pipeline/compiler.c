@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "compiler.h"
-#include "../datastructs/chunk.h"
+#include "../datastructs/bytecode.h"
 #include "../datastructs/value.h"
 #include "../util.h"
 #include "../datastructs/object.h"
@@ -67,8 +67,8 @@ static void expression(Compiler* compiler);
 static void nonCommaExpression(Compiler* compiler);
 static void statement(Compiler* compiler);
 
-static inline Chunk* compilingChunk(Compiler* compiler) {
-    return compiler->scope->function->chunk;
+static inline Bytecode* compilingBytecode(Compiler* compiler) {
+    return compiler->scope->function->bytecode;
 }
 
 static void error(Compiler* compiler, Token tok, char* message) {
@@ -145,15 +145,15 @@ void initCompiler(Compiler* compiler) {
 }
 
 static void emitByte(Compiler* compiler, uint8_t byte) {
-    writeChunk(compiler->collector, compilingChunk(compiler), byte, compiler->current.line);
+    writeBytecode(compiler->collector, compilingBytecode(compiler), byte, compiler->current.line);
 }
 
 static inline void emit_addressable_at_current(Compiler* compiler, OpCode longCode, OpCode shortCode, Value value) {
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), longCode, shortCode, value, compiler->current.line);
+    writeAddressableInstruction(compiler->collector, compilingBytecode(compiler), longCode, shortCode, value, compiler->current.line);
 }
 
 static inline void emit_addressable_at_previous(Compiler* compiler, OpCode longCode, OpCode shortCode, Value value) {
-    writeAddressableInstruction(compiler->collector, compilingChunk(compiler), longCode, shortCode, value, compiler->previous.line);
+    writeAddressableInstruction(compiler->collector, compilingBytecode(compiler), longCode, shortCode, value, compiler->previous.line);
 }
 
 static void emitConstant(Compiler* compiler, Value val) {
@@ -228,22 +228,22 @@ static int indexUpvalue(Scope* scope, Token identifier) {
 }
 
 static void emitUpvalueGet(Compiler* compiler, Value name, int index) {
-    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_UPVALUE_GET_LONG, OP_UPVALUE_GET, (uint16_t) index, compiler->previous.line);
+    writeVariableSizeOp(compiler->collector, compilingBytecode(compiler), OP_UPVALUE_GET_LONG, OP_UPVALUE_GET, (uint16_t) index, compiler->previous.line);
 }
 
 static void emitUpvalueSet(Compiler* compiler, Value name, int index) {
-    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_UPVALUE_SET_LONG, OP_UPVALUE_SET, (uint16_t) index, compiler->previous.line);
+    writeVariableSizeOp(compiler->collector, compilingBytecode(compiler), OP_UPVALUE_SET_LONG, OP_UPVALUE_SET, (uint16_t) index, compiler->previous.line);
 }
 
 static void emitLocalGet(Compiler* compiler, Value name, int index) {
     if (compiler->scope->locals[index].depth < 0) { 
         errorAtCurrent(compiler, "cannot read local variable in its own initializer");
     }
-    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_GET_LONG, OP_LOCAL_GET, (uint16_t) index, compiler->previous.line);
+    writeVariableSizeOp(compiler->collector, compilingBytecode(compiler), OP_LOCAL_GET_LONG, OP_LOCAL_GET, (uint16_t) index, compiler->previous.line);
 }
 
 static void emitLocalSet(Compiler* compiler, Value name, int index) {
-    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_LOCAL_SET_LONG, OP_LOCAL_SET, (uint16_t) index, compiler->previous.line);
+    writeVariableSizeOp(compiler->collector, compilingBytecode(compiler), OP_LOCAL_SET_LONG, OP_LOCAL_SET, (uint16_t) index, compiler->previous.line);
 }
 
 static void emitRet(Compiler* compiler) {
@@ -263,21 +263,21 @@ static int emitJump(Compiler* compiler, OpCode opcode) {
     emitByte(compiler, opcode);
     emitByte(compiler, 0x00);
     emitByte(compiler, 0x00);
-    return compilingChunk(compiler)->count - 3;
+    return compilingBytecode(compiler)->count - 3;
 }
 
 static int patchJump(Compiler* compiler, int address) {
-    int newarg = compilingChunk(compiler)->count - address;
+    int newarg = compilingBytecode(compiler)->count - address;
     if (newarg > UINT16_MAX) {                                    
         errorAtCurrent(compiler, "branch too big");                     
     } 
     SplittedLong sl = split_long((uint16_t) newarg);
-    compilingChunk(compiler)->code[address + 1] = sl.b0;
-    compilingChunk(compiler)->code[address + 2] = sl.b1;  
+    compilingBytecode(compiler)->code[address + 1] = sl.b0;
+    compilingBytecode(compiler)->code[address + 2] = sl.b1;  
 }
 
 static void emitJumpBack(Compiler* compiler, int address) {
-    int offset = compilingChunk(compiler)->count - address;
+    int offset = compilingBytecode(compiler)->count - address;
     if (offset > UINT16_MAX) {
         errorAtCurrent(compiler, "loop body too big");
     }
@@ -288,11 +288,11 @@ static void emitJumpBack(Compiler* compiler, int address) {
 }
 
 static void emitArrayLiteral(Compiler* compiler, int count) {
-    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_ARRAY_LONG, OP_ARRAY, (uint16_t) count, compiler->previous.line);
+    writeVariableSizeOp(compiler->collector, compilingBytecode(compiler), OP_ARRAY_LONG, OP_ARRAY, (uint16_t) count, compiler->previous.line);
 }
 
 static void emitDictionaryLiteral(Compiler* compiler, int count) {
-    writeVariableSizeOp(compiler->collector, compilingChunk(compiler), OP_DICT_LONG, OP_DICT, (uint16_t) count, compiler->previous.line);
+    writeVariableSizeOp(compiler->collector, compilingBytecode(compiler), OP_DICT_LONG, OP_DICT, (uint16_t) count, compiler->previous.line);
 }
 
 static void emitBinary(Compiler* compiler, TokenType operator) {
@@ -335,7 +335,7 @@ static ObjFunction* popScope(Compiler* compiler) {
     compiler->scope = compiler->scope->enclosing;
 #ifdef PRINT_CODE
     printf("FUNCTION CODE:\n");
-    printChunk(function->chunk, function->name == NULL ? "main code" : function->name->chars);
+    printBytecode(function->bytecode, function->name == NULL ? "main code" : function->name->chars);
     printf("\n");
 #endif
     return function;
@@ -874,7 +874,7 @@ static void continueStat(Compiler* compiler) {
 static void whileStat(Compiler* compiler) {
     enterLoop(compiler);
     advance(compiler); // skip while
-    int jumpBackAddress = compilingChunk(compiler)->count; 
+    int jumpBackAddress = compilingBytecode(compiler)->count; 
     expression(compiler);
     eatError(compiler, TOK_NEW_LINE, "expected new line after while condition");
     int jumpwhile = emitJump(compiler, OP_JUMP_IF_FALSE);

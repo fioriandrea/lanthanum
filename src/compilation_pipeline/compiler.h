@@ -1,7 +1,7 @@
 #ifndef compiler_h
 #define compiler_h
 
-#include "../datastructs/chunk.h"
+#include "../datastructs/bytecode.h"
 #include "../memory.h"
 #include "lexer.h"
 #include "../datastructs/hash_map.h"

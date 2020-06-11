@@ -1,9 +1,9 @@
 #ifndef asm_printer_h
 #define asm_printer_h
 
-#include "../datastructs/chunk.h"
+#include "../datastructs/bytecode.h"
 
-void printChunk(Chunk* chunk, char* name);
-int printInstruction(Chunk* chunk, OpCode code, int offset);
+void printBytecode(Bytecode* bytecode, char* name);
+int printInstruction(Bytecode* bytecode, OpCode code, int offset);
 
 #endif

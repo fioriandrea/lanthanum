@@ -5,7 +5,7 @@
 #include "object.h"
 #include "../util.h"
 #include "../memory.h"
-#include "chunk.h"
+#include "bytecode.h"
 #include "value.h"
 #include "../debug/debug_switches.h"
 
@@ -134,9 +134,9 @@ ObjFunction* newFunction(Collector* collector) {
     function->arity = 0;
     function->upvalueCount = 0;
     pushSafe(collector, to_vobj(function));
-    function->chunk = allocate_pointer(collector, Chunk, sizeof(Chunk));
+    function->bytecode = allocate_pointer(collector, Bytecode, sizeof(Bytecode));
     popSafe(collector);
-    initChunk(function->chunk);
+    initBytecode(function->bytecode);
     return function;
 }
 
@@ -229,8 +229,8 @@ void freeObject(Collector* collector, Obj* object) {
         case OBJ_FUNCTION:
             {
                 ObjFunction* function = (ObjFunction*) object;
-                freeChunk(collector, function->chunk);
-                free_pointer(collector, function->chunk, sizeof(Chunk));
+                freeBytecode(collector, function->bytecode);
+                free_pointer(collector, function->bytecode, sizeof(Bytecode));
                 free_pointer(collector, function, sizeof(ObjFunction));
                 break;
             }      
@@ -376,7 +376,7 @@ void blackenObject(Collector* collector, Obj* obj) {
             {
                 ObjFunction* fn = (ObjFunction*) obj;
                 markObject(collector, (Obj*) fn->name);
-                markChunk(collector, fn->chunk);
+                markBytecode(collector, fn->bytecode);
                 break;
             }
         case OBJ_CLOSURE:

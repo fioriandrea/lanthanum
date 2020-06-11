@@ -32,7 +32,7 @@ typedef struct {
     Obj obj;
     int arity;
     ObjString* name;
-    Chunk* chunk;
+    Bytecode* bytecode;
     int upvalueCount;
 } ObjFunction;
 

@@ -1,5 +1,5 @@
-#ifndef chunk_h
-#define chunk_h
+#ifndef bytecode_h
+#define bytecode_h
 
 #include "../commontypes.h"
 #include "value.h"
@@ -60,7 +60,7 @@ typedef enum {
     OP_DICT_LONG,
 } OpCode;
 
-struct sChunk {
+struct sBytecode {
     int count;
     int capacity;
     uint8_t* code;
@@ -68,11 +68,11 @@ struct sChunk {
     LineArray lines;
 };
 
-void initChunk(struct sChunk* chunk);
-int writeChunk(Collector* collector, struct sChunk* chunk, uint8_t byte, int line);
-void freeChunk(Collector* collector, struct sChunk* chunk);
-int writeVariableSizeOp(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, uint16_t argument, int line);
-int writeAddressableInstruction(Collector* collector, struct sChunk* chunk, OpCode oplong, OpCode opshort, Value val, int line);
-void markChunk(Collector* collector, Chunk* chunk);
+void initBytecode(struct sBytecode* bytecode);
+int writeBytecode(Collector* collector, struct sBytecode* bytecode, uint8_t byte, int line);
+void freeBytecode(Collector* collector, struct sBytecode* bytecode);
+int writeVariableSizeOp(Collector* collector, struct sBytecode* bytecode, OpCode oplong, OpCode opshort, uint16_t argument, int line);
+int writeAddressableInstruction(Collector* collector, struct sBytecode* bytecode, OpCode oplong, OpCode opshort, Value val, int line);
+void markBytecode(Collector* collector, struct sBytecode* bytecode);
 
 #endif

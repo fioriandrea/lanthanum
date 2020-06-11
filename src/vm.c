@@ -36,8 +36,8 @@ Value vmPop(VM* vm) {
 }
 
 static void runtimeError(VM* vm, char* format, ...) {
-    int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].closure->function->chunk->code - 1; 
-    int line = lineArrayGet(&vm->frames[vm->fp - 1].closure->function->chunk->lines, instruction);         
+    int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].closure->function->bytecode->code - 1; 
+    int line = lineArrayGet(&vm->frames[vm->fp - 1].closure->function->bytecode->lines, instruction);         
 
     va_list args;                                    
     va_start(args, format);                          
@@ -82,8 +82,8 @@ static int vmRun(VM* vm) {
     OpCode caseCode;
 #define read_byte() (*(currentFrame->pc++))
 #define read_long() join_bytes(read_byte(), read_byte())
-#define read_constant() (currentFrame->closure->function->chunk->constants.values[read_byte()])
-#define read_constant_long() (currentFrame->closure->function->chunk->constants.values[read_long()])
+#define read_constant() (currentFrame->closure->function->bytecode->constants.values[read_byte()])
+#define read_constant_long() (currentFrame->closure->function->bytecode->constants.values[read_long()])
 #define read_long_if(oplong) (caseCode == (oplong) ? read_long() : read_byte())
 #define read_constant_long_if(oplong) (caseCode == (oplong) ? read_constant_long() : read_constant())
 #define binary_op(operator, destination) \
@@ -104,7 +104,7 @@ static int vmRun(VM* vm) {
     for (;;) {
 #ifdef TRACE_EXEC
         printf("\n");
-        printInstruction(currentFrame->closure->function->chunk, *currentFrame->pc, (int) (currentFrame->pc - currentFrame->closure->function->chunk->code));
+        printInstruction(currentFrame->closure->function->bytecode, *currentFrame->pc, (int) (currentFrame->pc - currentFrame->closure->function->bytecode->code));
         printf("stack: [");
         for (Value* start = vm->stack; start < vm->sp; start++) {
             printValue(*start);
@@ -161,7 +161,7 @@ static int vmRun(VM* vm) {
                     } 
                     currentFrame = &vm->frames[vm->fp++];
                     currentFrame->closure = closure;
-                    currentFrame->pc = currentFrame->closure->function->chunk->code;
+                    currentFrame->pc = currentFrame->closure->function->bytecode->code;
                     currentFrame->localStack = vm->sp - argCount;
                     break;
                 }
@@ -548,7 +548,7 @@ int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     initVM(vm);
     CallFrame* initialFrame = &vm->frames[0];
     initialFrame->closure = newClosure(collector, function);
-    initialFrame->pc = function->chunk->code;
+    initialFrame->pc = function->bytecode->code;
     initialFrame->localStack = vm->stack;
     mapPut(NULL, &vm->globals, to_vobj(initialFrame->closure), to_vnihl());
 

@@ -49,6 +49,6 @@ int writeAddressableInstruction(Collector* collector, struct sChunk* chunk, OpCo
     return result;
 }
 
-void markChunk(Collector* collector, Chunk* chunk) {
+void markChunk(Collector* collector, struct sChunk* chunk) {
     markValueArray(collector, &chunk->constants);
 }

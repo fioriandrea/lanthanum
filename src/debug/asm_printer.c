@@ -11,68 +11,68 @@ static int printSimpleInstruction(char* instname, int offset) {
     return offset + 1;
 }
 
-static int printAddressedInstruction(char* instname, Chunk* chunk, int offset) {
-    uint8_t address = chunk->code[offset + 1];
-    Value* val = &chunk->constants.values[address];
+static int printAddressedInstruction(char* instname, Bytecode* bytecode, int offset) {
+    uint8_t address = bytecode->code[offset + 1];
+    Value* val = &bytecode->constants.values[address];
     printf("%s [%d] '", instname, address);
     printValue(*val);
     printf("'\n");
     return offset + 2;
 }
 
-static int printAddressedLongInstruction(char* instname, Chunk* chunk, int offset) {
-    uint16_t address = join_bytes(chunk->code[offset + 1], chunk->code[offset + 2]);
-    Value* val = &chunk->constants.values[address];
+static int printAddressedLongInstruction(char* instname, Bytecode* bytecode, int offset) {
+    uint16_t address = join_bytes(bytecode->code[offset + 1], bytecode->code[offset + 2]);
+    Value* val = &bytecode->constants.values[address];
     printf("%s [%d] '", instname, address);
     printValue(*val);
     printf("'\n");
     return offset + 3;
 }
 
-static int printArgumentedInstruction(char* instname, Chunk* chunk, int offset) {
-    uint8_t arg = chunk->code[offset + 1];
+static int printArgumentedInstruction(char* instname, Bytecode* bytecode, int offset) {
+    uint8_t arg = bytecode->code[offset + 1];
     printf("%s arg:[%d]\n", instname, arg);
     return offset + 2;
 }
 
-static int printArgumentedLongInstruction(char* instname, Chunk* chunk, int offset) {
-    uint16_t arg = join_bytes(chunk->code[offset + 1], chunk->code[offset + 2]);
+static int printArgumentedLongInstruction(char* instname, Bytecode* bytecode, int offset) {
+    uint16_t arg = join_bytes(bytecode->code[offset + 1], bytecode->code[offset + 2]);
     printf("%s arg:[%d]\n", instname, arg);
     return offset + 3;
 }
 
-void printChunk(Chunk* chunk, char* name) {
-    printf("chunk => %s\n", name);
-    for (int i = 0; i < chunk->count; ) {
-        i = printInstruction(chunk, chunk->code[i], i);
+void printBytecode(Bytecode* bytecode, char* name) {
+    printf("bytecode => %s\n", name);
+    for (int i = 0; i < bytecode->count; ) {
+        i = printInstruction(bytecode, bytecode->code[i], i);
     }
 }
 
-int printInstruction(Chunk* chunk, OpCode code, int offset) {
+int printInstruction(Bytecode* bytecode, OpCode code, int offset) {
 #define print_simple_instruction(op) case op: return printSimpleInstruction(#op, offset);
-#define print_addressed_instruction(op) case op: return printAddressedInstruction(#op, chunk, offset);
-#define print_addressed_long_instruction(op) case op: return printAddressedLongInstruction(#op, chunk, offset);
-#define print_argumented_instruction(op) case op: return printArgumentedInstruction(#op, chunk, offset);
-#define print_argumented_long_instruction(op) case op: return printArgumentedLongInstruction(#op, chunk, offset);
+#define print_addressed_instruction(op) case op: return printAddressedInstruction(#op, bytecode, offset);
+#define print_addressed_long_instruction(op) case op: return printAddressedLongInstruction(#op, bytecode, offset);
+#define print_argumented_instruction(op) case op: return printArgumentedInstruction(#op, bytecode, offset);
+#define print_argumented_long_instruction(op) case op: return printArgumentedLongInstruction(#op, bytecode, offset);
 #define print_closure(op, l) \
     case op: \
              { \
                  offset++; \
-                 uint16_t address = l ? join_bytes(chunk->code[offset++], chunk->code[offset++]) : chunk->code[offset++]; \
-                 Value funVal = chunk->constants.values[address]; \
+                 uint16_t address = l ? join_bytes(bytecode->code[offset++], bytecode->code[offset++]) : bytecode->code[offset++]; \
+                 Value funVal = bytecode->constants.values[address]; \
                  printf("%s [%d] '", #op, address); \
                  printValue(funVal); \
                  printf("'\n"); \
                  ObjFunction* function = as_function(funVal); \
                  for (int i = 0; i < function->upvalueCount; i++) { \
-                     int ownedAbove = chunk->code[offset++]; \
-                     int index = chunk->code[offset++]; \
+                     int ownedAbove = bytecode->code[offset++]; \
+                     int index = bytecode->code[offset++]; \
                      printf("index -> %d [%s]\n", index, ownedAbove ? "ownedAbove" : "ownedHere"); \
                  } \
                  return offset; \
              } 
 
-    printf("line = %d: ", lineArrayGet(&chunk->lines, offset));
+    printf("line = %d: ", lineArrayGet(&bytecode->lines, offset));
     switch (code) {
         print_closure(OP_CLOSURE, 0)
             print_closure(OP_CLOSURE_LONG, 1)

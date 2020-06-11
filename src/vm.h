@@ -1,7 +1,7 @@
 #ifndef vm_h
 #define vm_h
 
-#include "./datastructs/chunk.h"
+#include "./datastructs/bytecode.h"
 #include "./commontypes.h"
 #include "./datastructs/value.h"
 #include "./datastructs/hash_map.h"
