@@ -9,6 +9,18 @@
 #define LOAD_FACTOR 0.65 
 #define get_index(hash, capacity) ((hash) & ((capacity) - 1))
 
+static void freeEntries(Collector* collector, Entry** entries, int capacity) {
+    for (int i = 0; i < capacity; i++) {
+        Entry* entry = entries[i];
+        while (entry != NULL) {
+            Entry* toFree = entry;
+            entry = entry->next;
+            free_pointer(collector, toFree, sizeof(Entry));
+        }
+    }
+    free_array(collector, Entry*, entries, capacity);
+}
+
 static Entry* findEntry(Entry** entries, int capacity, Value key) {
     if (entries == NULL)
         return NULL;
@@ -49,13 +61,11 @@ static void growMap(Collector* collector, struct sHashMap* map) {
     for (int i = 0; i < map->capacity; i++) {
         Entry* head = map->entries[i];
         while (head != NULL) {
-            Entry* toFree = head;
             entriesPut(collector, newentries, newcap, head->key, head->value);
             head = head->next;
-            free_pointer(collector, toFree, sizeof(Entry));
         }
     }
-    free_array(collector, Entry*, map->entries, map->capacity);
+    freeEntries(collector, map->entries, map->capacity);
     map->entries = newentries;
     map->capacity = newcap;
 }
@@ -112,15 +122,7 @@ int mapRemove(Collector* collector, struct sHashMap* map, Value key) {
 }
 
 void freeMap(Collector* collector, struct sHashMap* map) {
-    for (int i = 0; i < map->capacity; i++) {
-        Entry* entry = map->entries[i];
-        while (entry != NULL) {
-            Entry* toFree = entry;
-            entry = entry->next;
-            free_pointer(collector, toFree, sizeof(Entry));
-        }
-    }
-    free_array(collector, Entry*, map->entries, map->capacity);
+    freeEntries(collector, map->entries, map->capacity);
     initMap(map);
 }
 
@@ -168,9 +170,10 @@ void removeUnmarkedKeys(Collector* collector, struct sHashMap* map) {
                 previous->next = current->next;
                 free_pointer(collector, current, sizeof(Entry));
                 current = previous->next;
-            } else {
-                previous = current;
-                current = current->next;
+            } else { 
+                previous = previous->next;
+                if (current != NULL)
+                    current = current->next;
             }
         }
         map->entries[i] = dummy->next;
