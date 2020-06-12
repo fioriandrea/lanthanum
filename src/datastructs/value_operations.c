@@ -53,70 +53,54 @@ static int indexGetString(Collector* collector, ObjString* string, Value* index,
 void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result) {
     switch (array->type) {
         case OBJ_STRING:
-            {
                 indexGetString(collector, (ObjString*) array, index, result);
                 break;
-            }
         case OBJ_ARRAY:
-            {
                 indexGetArray(collector, (ObjArray*) array, index, result);
                 break;
-            }
         case OBJ_DICT:
-            {
                 dictGet((ObjDict*) array, index, result);
-                break;;
-            }
+                break;
         default:
-            {
                 *result = to_vobj(newError(collector, "object not indexable", NULL));
                 break;
-            }
     }
 }
 
 void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value, Value* result) {
     switch (array->type) {
         case OBJ_ARRAY:
-            {
                 indexSetArray(collector, (ObjArray*) array, index, value, result);
                 break;
-            }
         case OBJ_DICT:
-            {
                 dictPut(collector, (ObjDict*) array, index, value);
                 *result = *value;
                 break;
-            }
         default:
-            {
                 *result = to_vobj(newError(collector, "object index not assignable", NULL));
                 break;
-            }
     }
 }
 
 static ObjArray* concatenateArrays(Collector* collector, ObjArray* a, ObjArray* b) {
     ObjArray* newArr = newArray(collector);
+    pushSafeObj(collector, newArr);
     for (int i = 0; i < a->values->count; i++) {
         arrayPush(collector, newArr, &a->values->values[i]);
     }
     for (int i = 0; i < b->values->count; i++) {
         arrayPush(collector, newArr, &b->values->values[i]);
     }
+    popSafe(collector);
     return newArr;
 }
 
-static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb) {
+ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjString* sb) {
     int length = sa->length + sb->length;
     if (length == 0)
         return copyString(collector, "", 0);
     
-    pushSafe(collector, to_vobj(sa));
-    pushSafe(collector, to_vobj(sb));
     char* chars = allocate_block(collector, char, length + 1);
-    popSafe(collector);
-    popSafe(collector);
     memcpy(chars, sa->chars, sa->length);
     memcpy(chars + sa->length, sb->chars, sb->length);
     chars[length] = '\0'; 
@@ -124,42 +108,37 @@ static ObjString* concatenateStrings(Collector* collector, ObjString* sa, ObjStr
     return result;
 }
 
-ObjString* concatenateCharArrays(Collector* collector, char* first, ...) {
-    va_list args;                                     
-    va_start(args, first);
-    ObjString* result = vconcatenateCharArrays(collector, first, args); 
-    va_end(args);
+ObjString* concatenateStringsSafe(Collector* collector, ObjString* sa, ObjString* sb) {
+    pushSafeObj(collector, sa);
+    pushSafeObj(collector, sb);
+    ObjString* result = concatenateStrings(collector, sa, sb);
+    popSafe(collector);
+    popSafe(collector);
     return result;
 }
 
 ObjString* concatenateStringAndCharArray(Collector* collector, ObjString* str, char* carr) {
-    pushSafe(collector, to_vobj(str));
     ObjString* second = copyString(collector, carr, strlen(carr));
-    popSafe(collector);
-    return concatenateStrings(collector, str, second);
+    return concatenateStringsSafe(collector, str, second);
 }
 
-ObjString* concatenateMultipleStrings(Collector* collector, ObjString* first, ...) {
+ObjString* concatenateStringAndCharArraySafe(Collector* collector, ObjString* str, char* carr) {
+    pushSafeObj(collector, str);
+    ObjString* second = copyNoLengthString(collector, carr);
+    popSafe(collector);
+    ObjString* result = concatenateStringsSafe(collector, str, second);
+    return result;
+}
+
+ObjString* concatenateMultipleCharArrays(Collector* collector, char* first, ...) {
     va_list args;                                     
     va_start(args, first);
-    ObjString* result = vconcatenateMultipleStrings(collector, first, args); 
+    ObjString* result = vconcatenateMultipleCharArrays(collector, first, args); 
     va_end(args);
     return result;
 }
 
-ObjString* vconcatenateMultipleStrings(Collector* collector, ObjString* first, va_list rest) {
-    ObjString* result = first; 
-    ObjString* second = NULL;
-    for (;;) {
-        second = va_arg(rest, ObjString*);
-        if (second == NULL)
-            break;
-        result = concatenateStrings(collector, result, second);
-    }
-    return result;
-}
-
-ObjString* vconcatenateCharArrays(Collector* collector, char* first, va_list rest) {
+ObjString* vconcatenateMultipleCharArrays(Collector* collector, char* first, va_list rest) {
     ObjString* result = copyString(collector, first, strlen(first)); 
     char* partial = NULL;
     for (;;) {
@@ -167,22 +146,22 @@ ObjString* vconcatenateCharArrays(Collector* collector, char* first, va_list res
         if (partial == NULL)
             break;
         ObjString* sa = result;
-        pushSafe(collector, to_vobj(sa));
+        pushSafeObj(collector, sa);
         ObjString* sb = copyString(collector, partial, strlen(partial));
-        popSafe(collector);
+        pushSafeObj(collector, sb);
         result = concatenateStrings(collector, sa, sb);
+        popSafe(collector);
+        popSafe(collector);
     }
     return result;
 }
 
-static ObjString* strOrSelf(Collector* collector, ObjString* accumulated, Obj* container, Value value) {
-    pushSafe(collector, to_vobj(accumulated));
+static ObjString* strOrSelf(Collector* collector, Obj* container, Value value) {
     ObjString* result;
     if (is_obj(value) && as_obj(value) == container)
-        result = concatenateCharArrays(collector, "<self>", NULL);
+        result = copyNoLengthString(collector, "<self>");
     else
         result = valueToString(collector, value);
-    popSafe(collector);
     return result;
 }
 
@@ -193,10 +172,14 @@ ObjString* objectToString(Collector* collector, Obj* obj) {
         case OBJ_FUNCTION:
             {
                 ObjFunction* function = (ObjFunction*) obj;
-                if (function->name == NULL)
-                    return concatenateCharArrays(collector, "<init>", NULL);
-                else
-                    return concatenateCharArrays(collector, "<", function->name->chars, " function>", NULL);
+                if (function->name == NULL) {
+                    return copyNoLengthString(collector, "<init>");
+                } else {
+                    ObjString* result = copyNoLengthString(collector, "<");
+                    result = concatenateStringsSafe(collector, result, function->name);
+                    result = concatenateStringAndCharArraySafe(collector, result, " function>"); 
+                    return result;
+                }
             }
         case OBJ_CLOSURE:
             {
@@ -206,54 +189,70 @@ ObjString* objectToString(Collector* collector, Obj* obj) {
         case OBJ_UPVALUE:
             {
                 ObjUpvalue* upvalue = (ObjUpvalue*) obj;
-                return concatenateCharArrays(collector, "upvalue ", 
-                        valueToCharArray(collector, *upvalue->value), NULL);
+                ObjString* result = copyNoLengthString(collector, "upvalue ");
+                pushSafeObj(collector, result);
+                result = concatenateStringsSafe(collector, result, 
+                        valueToString(collector, *upvalue->value));
+                popSafe(collector);
+                return result;
             }
         case OBJ_ERROR:
             {
                 ObjError* error = (ObjError*) obj;
                 ObjString* result = error->message;
                 if (error->payload != NULL) {
-                    return concatenateCharArrays(collector, " (", 
-                            valueToCharArray(collector, *error->payload), ")", NULL);
+                    result = concatenateStringAndCharArraySafe(collector, result, " (");
+                    pushSafeObj(collector, result);
+                    result = concatenateStringsSafe(collector, result,
+                            valueToString(collector, *error->payload));
+                    popSafe(collector);
+                    result = concatenateStringAndCharArray(collector, result, ")");
                 }
                 return result;
             }
         case OBJ_ARRAY:
             {
                 ObjArray* array = (ObjArray*) obj;
-                ObjString* result = copyString(collector, "[", 1);
+                ObjString* result = copyNoLengthString(collector, "[");
                 for (int i = 0; i < array->values->count - 1; i++) {
                     Value val = array->values->values[i];
-                    result = concatenateStrings(collector, result, strOrSelf(collector, result, obj, val));
-                    result = concatenateStringAndCharArray(collector, result, ",");
+                    pushSafeObj(collector, result);
+                    result = concatenateStringsSafe(collector, result, strOrSelf(collector, obj, val));
+                    popSafe(collector);
+                    result = concatenateStringAndCharArraySafe(collector, result, ",");
                 }
                 if (array->values->count > 0) {
                     int index = array->values->count - 1;
                     Value val = array->values->values[index];
-                    result = concatenateStrings(collector, result, strOrSelf(collector, result, obj, val));
+                    pushSafeObj(collector, result);
+                    result = concatenateStringsSafe(collector, result, strOrSelf(collector, obj, val));
+                    popSafe(collector);
                 }
-                result = concatenateStringAndCharArray(collector, result, "]");
+                result = concatenateStringAndCharArraySafe(collector, result, "]");
                 return result;
             }
         case OBJ_DICT:
             {
                 ObjDict* dict = (ObjDict*) obj;
-                ObjString* result = copyString(collector, "{", 1);
+                ObjString* result = copyNoLengthString(collector, "{");
                 HashMap* map = dict->map;
                 for (int i = 0; i < map->capacity; i++) {
                     Entry* entry = map->entries[i];
                     while (entry != NULL) {
-                        result = concatenateStrings(collector, result, 
-                                strOrSelf(collector, result, obj, entry->key));
-                        result = concatenateStringAndCharArray(collector, result, " => ");
-                        result = concatenateStrings(collector, result, 
-                                strOrSelf(collector, result, obj, entry->value));
-                        result = concatenateStringAndCharArray(collector, result, ",");
+                        pushSafeObj(collector, result);
+                        result = concatenateStringsSafe(collector, result, 
+                                strOrSelf(collector, obj, entry->key));
+                        popSafe(collector);
+                        result = concatenateStringAndCharArraySafe(collector, result, " => ");
+                        pushSafeObj(collector, result);
+                        result = concatenateStringsSafe(collector, result, 
+                                strOrSelf(collector, obj, entry->value));
+                        popSafe(collector);
+                        result = concatenateStringAndCharArraySafe(collector, result, ",");
                         entry = entry->next;
                     }
                 }
-                result = concatenateStringAndCharArray(collector, result, "}");
+                result = concatenateStringAndCharArraySafe(collector, result, "}");
                 return result;
             }
     }
@@ -274,15 +273,11 @@ Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b) {
 }
 
 void arrayPush(Collector* collector, ObjArray* array, Value* value) {
-    pushSafe(collector, to_vobj(array));
     writeValueArray(collector, array->values, *value);
-    popSafe(collector);
 }
 
 int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value) {
-    pushSafe(collector, to_vobj(dict));
     int res = mapPut(collector, dict->map, *key, *value);
-    popSafe(collector);
     return res;
 }
 
@@ -313,28 +308,24 @@ Value indexSetValue(Collector* collector, Value arrayLike, Value index, Value va
 ObjString* valueToString(Collector* collector, Value value) {
     switch (value.type) {
         case VALUE_BOOL:
-            return concatenateCharArrays(collector, as_cbool(value) ? "true" : "false", NULL);
+            return copyNoLengthString(collector, as_cbool(value) ? "true" : "false");
         case VALUE_NUMBER:
             {
 #define MAX_DOUBLE_STR_LEN 80
                 char numstr[MAX_DOUBLE_STR_LEN];
                 sprintf(numstr, "%g", as_cnumber(value));
-                return concatenateCharArrays(collector, numstr, NULL);
+                return copyNoLengthString(collector, numstr);
 #undef MAX_DOUBLE_STR_LEN
             }
         case VALUE_NIHL:
-            return concatenateCharArrays(collector, "nihl", NULL);
+            return copyNoLengthString(collector, "nihl");
         case VALUE_OBJ:
             return objectToString(collector, as_obj(value));
     }
 }
 
-char* valueToCharArray(Collector* collector, Value value) {
-    return valueToString(collector, value)->chars;
-}
-
 void printValue(Collector* collector, Value val) {
-    printf("%s", valueToCharArray(collector, val)); 
+    printf("%s", valueToString(collector, val)->chars); 
 }
 
 int isTruthy(Value val) {

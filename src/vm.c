@@ -248,10 +248,12 @@ static int vmRun(VM* vm) {
                     ObjArray* array = newArray(vm->collector);
                     Value* nextsp = vm->sp - len;
                     Value* tmpsp = nextsp;
+                    vmPush(vm, to_vobj(array));
                     while (len > 0) {
                         arrayPush(vm->collector, array, tmpsp++);
                         len--;
                     }
+                    // no vmPop required due to vm->sp = nextsp
                     vm->sp = nextsp;
                     vmPush(vm, to_vobj(array));
                     break;
@@ -263,12 +265,14 @@ static int vmRun(VM* vm) {
                     ObjDict* dict = newDict(vm->collector);
                     Value* nextsp = vm->sp - len * 2;
                     Value* tmpsp = nextsp;
+                    vmPush(vm, to_vobj(dict));
                     while (len > 0) {
                         Value* key = tmpsp++;
                         Value* value = tmpsp++;
                         dictPut(vm->collector, dict, key, value);
                         len--;
                     }
+                    // no vmPop required due to vm->sp = nextsp
                     vm->sp = nextsp;
                     vmPush(vm, to_vobj(dict));
                     break;

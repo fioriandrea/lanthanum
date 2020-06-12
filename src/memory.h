@@ -47,6 +47,7 @@ struct sCollector {
 void* reallocate(struct sCollector* collector, void* pointer, size_t oldsize, size_t newsize); 
 void initCollector(struct sCollector* collector); 
 void freeCollector(struct sCollector* collector); 
+#define pushSafeObj(collector, obj) pushSafe(collector, to_vobj(obj))
 void pushSafe(struct sCollector* collector, Value value);
 void popSafe(struct sCollector* collector);
 

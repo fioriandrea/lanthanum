@@ -56,6 +56,10 @@ ObjString* copyString(Collector* collector, char* chars, int length) {
     return takeString(collector, copied, length);
 }
 
+ObjString* copyNoLengthString(Collector* collector, char* chars) {
+    return copyString(collector, chars, strlen(chars));
+}
+
 ObjString* takeString(Collector* collector, char* chars, int length) {
     ObjString* str;
     if ((str = containsStringDeepEqual(&collector->interned, chars, length)) != NULL) {
@@ -122,7 +126,7 @@ ObjDict* newDict(Collector* collector) {
 ObjError* newError(Collector* collector, char* first, ...) {
     va_list args;                                     
     va_start(args, first);
-    ObjString* message = vconcatenateCharArrays(collector, first, args); 
+    ObjString* message = vconcatenateMultipleCharArrays(collector, first, args); 
     va_end(args);
 
     pushSafe(collector, to_vobj(message));

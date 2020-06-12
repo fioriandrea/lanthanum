@@ -73,6 +73,7 @@ typedef struct {
 } ObjDict;
 
 ObjString* copyString(Collector* collector, char* chars, int length);
+ObjString* copyNoLengthString(Collector* collector, char* chars);
 ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
