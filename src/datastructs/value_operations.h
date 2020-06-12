@@ -1,6 +1,8 @@
 #ifndef value_operations
 #define value_operations
 
+#include <stdarg.h>
+
 #include "value.h"
 
 void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result);
@@ -10,6 +12,7 @@ ObjString* concatenateStringAndCharArraySafe(Collector* collector, ObjString* st
 ObjString* objectToString(Collector* collector, Obj* obj);
 ObjString* concatenateMultipleCharArrays(Collector* collector, char* first, ...);
 ObjString* vconcatenateMultipleCharArrays(Collector* collector, char* first, va_list rest);
+ObjError* makeErrorFromStrings(Collector* collector, char* first, ...);
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
 void arrayPush(Collector* collector, ObjArray* array, Value* value);
 int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value);

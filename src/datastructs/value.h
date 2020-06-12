@@ -2,7 +2,6 @@
 #define value_h
 
 #include "../commontypes.h"
-#include <stdarg.h>
 
 typedef struct sValue Value;
 typedef struct sValueArray ValueArray;
@@ -80,7 +79,7 @@ ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
 ObjArray* newArray(Collector* collector);
 ObjDict* newDict(Collector* collector);
-ObjError* newError(Collector* collector, char* first, ...);
+ObjError* newError(Collector* collector, ObjString* message);
 void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
 void markObject(Collector* collector, Obj* obj);

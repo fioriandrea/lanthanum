@@ -11,15 +11,27 @@
 // todo: make this file more consistent (indexObject calls helpers, but freeObject does not).
 // Also, indexObject signature is weirder than the others.
 
+ObjError* makeErrorFromStrings(Collector* collector, char* first, ...) {
+    va_list args;                                     
+    va_start(args, first);
+    ObjString* message = vconcatenateMultipleCharArrays(collector, first, args); 
+    va_end(args);
+
+    pushSafeObj(collector, message);
+    ObjError* error = newError(collector, message);
+    popSafe(collector);
+    return error;
+}
+
 static int indexGetArray(Collector* collector, ObjArray* array, Value* index, Value* result) {
     if (!valueInteger(*index)) {
-        *result = to_vobj(newError(collector, "invalid index for array", NULL));
+        *result = to_vobj(makeErrorFromStrings(collector, "invalid index for array", NULL));
         return 0;
     }
     int cindex = (int) as_cnumber(*index);
     int count = array->values->count;
     if (cindex < 0 || cindex >= count) {
-        *result = to_vobj(newError(collector, "array index out of bounds", NULL));
+        *result = to_vobj(makeErrorFromStrings(collector, "array index out of bounds", NULL));
         return 0;
     }
     *result = array->values->values[cindex];
@@ -28,13 +40,13 @@ static int indexGetArray(Collector* collector, ObjArray* array, Value* index, Va
 
 static int indexSetArray(Collector* collector, ObjArray* array, Value* index, Value* value, Value* result) {
     if (!valueInteger(*index)) {
-        *result = to_vobj(newError(collector, "invalid index for array", NULL));
+        *result = to_vobj(makeErrorFromStrings(collector, "invalid index for array", NULL));
         return 0;
     }
     int cindex = (int) as_cnumber(*index);
     int count = array->values->count;
     if (cindex < 0 || cindex >= count) {
-        *result = to_vobj(newError(collector, "array index out of bounds", NULL));
+        *result = to_vobj(makeErrorFromStrings(collector, "array index out of bounds", NULL));
         return 0;
     }
     array->values->values[cindex] = *value;
@@ -43,12 +55,12 @@ static int indexSetArray(Collector* collector, ObjArray* array, Value* index, Va
 
 static int indexGetString(Collector* collector, ObjString* string, Value* index, Value* result) {
     if (!valueInteger(*index)) {
-        *result = to_vobj(newError(collector, "invalid index for string", NULL));
+        *result = to_vobj(makeErrorFromStrings(collector, "invalid index for string", NULL));
         return 0;
     }
     int cindex = (int) as_cnumber(*index);
     if (cindex < 0 || cindex >= string->length) {
-        *result = to_vobj(newError(collector, "string index out of bounds", NULL));
+        *result = to_vobj(makeErrorFromStrings(collector, "string index out of bounds", NULL));
         return 0;
     }
     *result = to_vobj(copyString(collector, string->chars + cindex, 1));
@@ -67,7 +79,7 @@ void indexGetObject(Collector* collector, Obj* array, Value* index, Value* resul
                 dictGet((ObjDict*) array, index, result);
                 break;
         default:
-                *result = to_vobj(newError(collector, "object not indexable", NULL));
+                *result = to_vobj(makeErrorFromStrings(collector, "object not indexable", NULL));
                 break;
     }
 }
@@ -82,7 +94,7 @@ void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value
                 *result = *value;
                 break;
         default:
-                *result = to_vobj(newError(collector, "object index not assignable", NULL));
+                *result = to_vobj(makeErrorFromStrings(collector, "object index not assignable", NULL));
                 break;
     }
 }
@@ -265,7 +277,7 @@ ObjString* objectToString(Collector* collector, Obj* obj) {
 
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b) {
     if (a->type != b->type) {
-        return (Obj*) newError(collector, "cannot concatenate objects of different types", NULL);
+        return (Obj*) makeErrorFromStrings(collector, "cannot concatenate objects of different types", NULL);
     }
     switch (a->type) {
         case OBJ_STRING:
@@ -273,7 +285,8 @@ Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b) {
         case OBJ_ARRAY:
             return (Obj*) concatenateArrays(collector, (ObjArray*) a, (ObjArray*) b);
         default:
-            return (Obj*) newError(collector, "cannot concatenate objects that are not strings or arrays", NULL);
+            return (Obj*) makeErrorFromStrings(collector, 
+                    "cannot concatenate objects that are not strings or arrays", NULL);
     }
 }
 
@@ -292,7 +305,7 @@ int dictGet(ObjDict* dict, Value* key, Value* result) {
 
 Value indexGetValue(Collector* collector, Value arrayLike, Value index) {
     if (!is_obj(arrayLike)) {
-        return to_vobj(newError(collector, "value not indexable", NULL));
+        return to_vobj(makeErrorFromStrings(collector, "value not indexable", NULL));
     }
     Obj* arrayObj = as_obj(arrayLike);
     Value result = to_vnihl();
@@ -302,7 +315,7 @@ Value indexGetValue(Collector* collector, Value arrayLike, Value index) {
 
 Value indexSetValue(Collector* collector, Value arrayLike, Value index, Value value) {
     if (!is_obj(arrayLike)) {
-        return to_vobj(newError(collector, "value not indexable", NULL));
+        return to_vobj(makeErrorFromStrings(collector, "value not indexable", NULL));
     }
     Obj* arrayObj = as_obj(arrayLike);
     Value result;
@@ -369,7 +382,7 @@ int valuesNumbers(Value a, Value b) {
 
 Value concatenate(Collector* collector, Value a, Value b) {
     if (!is_obj(a) || !is_obj(b)) {
-        return to_vobj(newError(collector, "cannot concatenate non objects", NULL));
+        return to_vobj(makeErrorFromStrings(collector, "cannot concatenate non objects", NULL));
     }
     return to_vobj(concatenateObjects(collector, as_obj(a), as_obj(b)));
 }

@@ -3,7 +3,6 @@
 #include "../util.h"
 #include "bytecode.h"
 #include "../debug/debug_switches.h"
-#include "value_operations.h"
 
 #ifdef TRACE_GC
 static inline char* string_type(ObjType type) {
@@ -123,15 +122,8 @@ ObjDict* newDict(Collector* collector) {
     return dict;
 }
 
-ObjError* newError(Collector* collector, char* first, ...) {
-    va_list args;                                     
-    va_start(args, first);
-    ObjString* message = vconcatenateMultipleCharArrays(collector, first, args); 
-    va_end(args);
-
-    pushSafe(collector, to_vobj(message));
+ObjError* newError(Collector* collector, ObjString* message) {
     ObjError* error = allocate_obj(collector, ObjError, OBJ_ERROR);
-    popSafe(collector);
     error->message = message;
     error->payload = NULL;   
     return error;
