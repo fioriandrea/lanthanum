@@ -6,6 +6,11 @@
 #include "value.h"
 #include "../memory.h"
 
+// GC INVARIANT: PARAMETERS PASSED ARE ALREADY ON THE STACK (exceptions are *Safe functions)
+
+// todo: make this file more consistent (indexObject calls helpers, but freeObject does not).
+// Also, indexObject signature is weirder than the others.
+
 static int indexGetArray(Collector* collector, ObjArray* array, Value* index, Value* result) {
     if (!valueInteger(*index)) {
         *result = to_vobj(newError(collector, "invalid index for array", NULL));
