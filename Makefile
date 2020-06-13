@@ -14,5 +14,7 @@ $(TARGET): $(OBJS)
 purge: clean
 	rm -f $(TARGET)
 
+cleanbuild:	purge all
+
 clean:
 	find $(SOURCEDIR) -type f -name '*.o' -print0 | xargs -0 rm -f

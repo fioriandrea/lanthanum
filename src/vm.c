@@ -129,11 +129,13 @@ static int vmRun(VM* vm) {
                     vm->fp--;
                     if (vm->fp == 0)
                         return RUNTIME_OK;
-                    while (vm->sp > currentFrame->localStack - 1) { // -1 to skip function sitting in stack
+                    // close local variables still on the stack
+                    while (vm->sp > currentFrame->localStack) { 
                         // todo this can be done more efficiently
                         closeOnStackUpvalue(vm, vm->sp - 1);
                         vm->sp--;
                     }
+                    vmPop(vm); // pop returning function
                     currentFrame = &vm->frames[vm->fp - 1];
                     vmPush(vm, retVal);
                     break;
@@ -217,7 +219,8 @@ static int vmRun(VM* vm) {
                                 current = current->next;
                             }
                             if (current == NULL) {
-                                closure->upvalues[i] = newUpvalue(vm->collector, currentFrame->localStack + index);
+                                closure->upvalues[i] = 
+                                    newUpvalue(vm->collector, currentFrame->localStack + index);
                                 closure->upvalues[i]->next = vm->openUpvalues;
                                 vm->openUpvalues = closure->upvalues[i];
                             } else {
