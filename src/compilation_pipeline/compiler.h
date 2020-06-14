@@ -42,7 +42,7 @@ struct sScope {
     int localsCount;
     ObjFunction* function;
     Upvalue upvalues[MAX_UPVALUES];
-    LoopSkip loopSkips[MAX_LOOP_SKIPS];
+    LoopSkip loopSkips[MAX_LOOP_SKIPS]; // loop skips are breaks and continues
     int loopSkipCount;
     int loopDepth;
 };

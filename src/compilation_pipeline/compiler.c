@@ -157,8 +157,12 @@ static int indexLocal(Scope* scope, Token identifier) {
     return -1; 
 }
 
-static int addUpvalue(Scope* scope, int index, int ownedAbove) {
+static int addUpvalue(Compiler* compiler, Scope* scope, int index, int ownedAbove) {
     int upvalueCount = scope->function->upvalueCount;
+    if (upvalueCount >= MAX_UPVALUES) {
+        errorAtCurrent(compiler, "too many upvalues inside function");
+        return -1;
+    }
     for (int i = 0; i < upvalueCount; i++) {
         Upvalue* upvalue = &scope->upvalues[i];
         if (upvalue->index == index && upvalue->ownedAbove == ownedAbove)
@@ -170,17 +174,17 @@ static int addUpvalue(Scope* scope, int index, int ownedAbove) {
     return upvalueCount;
 }
 
-static int indexUpvalue(Scope* scope, Token identifier) {
+static int indexUpvalue(Compiler* compiler, Scope* scope, Token identifier) {
     if (scope->enclosing == NULL)
         return -1;
     int index = indexLocal(scope->enclosing, identifier);
     if (index >= 0) {
         scope->enclosing->locals[index].isCaptured = 1;
-        return addUpvalue(scope, index, 0);
+        return addUpvalue(compiler, scope, index, 0);
     } else {
-        index = indexUpvalue(scope->enclosing, identifier);
+        index = indexUpvalue(compiler, scope->enclosing, identifier);
         if (index >= 0) {
-            return addUpvalue(scope, index, 1);
+            return addUpvalue(compiler, scope, index, 1);
         }
     }
     return -1;
@@ -316,6 +320,9 @@ static void declareLocal(Compiler* compiler, Token identifier) {
         errorAtCurrent(compiler, "variable with this name already declared in this scope");
         return;
     }
+    if (scope->localsCount >= MAX_LOCALS) {
+        errorAtCurrent(compiler, "too many locals declared in scope");
+    }
     Local* local = &scope->locals[scope->localsCount];
     local->name = identifier;
     local->isCaptured = 0;
@@ -352,7 +359,7 @@ static void identifierExpression(Compiler* compiler, int canAssign) {
     if (compiler->scope->depth > 0 && (index = indexLocal(compiler->scope, identifier)) >= 0) { // locals realm
         emitGet = &emitLocalGet;
         emitSet = &emitLocalSet;
-    } else if ((index = indexUpvalue(compiler->scope, identifier)) >= 0) {
+    } else if ((index = indexUpvalue(compiler, compiler->scope, identifier)) >= 0) {
         emitGet = &emitUpvalueGet;
         emitSet = &emitUpvalueSet;
     } else {
@@ -530,25 +537,37 @@ standard_binary_expression(comparisonExpression, addExpression,
 standard_binary_expression(equalExpression, comparisonExpression, 
         check(compiler, TOK_EQUAL_EQUAL) || check(compiler, TOK_NOT_EQUAL))
 
-    static void andExpression(Compiler* compiler, int canAssign) {
-        int jumpAddresses[MAX_BRANCHES];
-        int jumpAddressesPointer = 0;
-
-        equalExpression(compiler, canAssign);
-        while (eat(compiler, TOK_AND)) {
-            jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP_IF_FALSE);
-            emitByte(compiler, OP_POP);
-            equalExpression(compiler, 0);
+    static int checkBranchesBoundary(Compiler* compiler, int jumpAddressesPointer, char* message) {
+        if (jumpAddressesPointer >= MAX_BRANCHES) {
+            errorAtCurrent(compiler, message);
+            return 0;
         }
-
-        for (int i = 0; i < jumpAddressesPointer; i++)
-            patchJump(compiler, jumpAddresses[i]);
+        return 1;
     }
+
+static void andExpression(Compiler* compiler, int canAssign) {
+    int jumpAddresses[MAX_BRANCHES];
+    int jumpAddressesPointer = 0;
+
+    equalExpression(compiler, canAssign);
+    while (eat(compiler, TOK_AND)) {
+        if (!checkBranchesBoundary(compiler, jumpAddressesPointer, "short circuit expression too long"))
+            return;
+        jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP_IF_FALSE);
+        emitByte(compiler, OP_POP);
+        equalExpression(compiler, 0);
+    }
+
+    for (int i = 0; i < jumpAddressesPointer; i++)
+        patchJump(compiler, jumpAddresses[i]);
+}
 
 static void orExpression(Compiler* compiler, int canAssign) {
     int jumpAddresses[MAX_BRANCHES];
     int jumpAddressesPointer = 0;
     while (eat(compiler, TOK_OR)) {
+        if (!checkBranchesBoundary(compiler, jumpAddressesPointer, "short circuit expression too long"))
+            return;
         jumpAddresses[jumpAddressesPointer++] = emitJump(compiler, OP_JUMP_IF_TRUE);
         emitByte(compiler, OP_POP);
         andExpression(compiler, 0);
@@ -725,6 +744,8 @@ static void ifStat(Compiler* compiler) {
     emitByte(compiler, OP_POP);
 
     while (eat(compiler, TOK_ELIF)) {
+        if (!checkBranchesBoundary(compiler, jumpAddressesPointer, "too many elifs"))
+            return;
         expression(compiler);
         eatError(compiler, TOK_NEW_LINE, "expected new line after elif condition");
         int jumpelif = emitJump(compiler, OP_JUMP_IF_FALSE);
@@ -765,6 +786,10 @@ static void exitLoop(Compiler* compiler) {
 
 static void pushSkip(Compiler* compiler, int address, SkipType type) {
     Scope* scope = compiler->scope;
+    if (scope->loopSkipCount >= MAX_LOOP_SKIPS) {
+        errorAtCurrent(compiler, "too many breaks and continues in a function");
+        return;
+    }
     LoopSkip* skip = &scope->loopSkips[scope->loopSkipCount];
     skip->type = type;
     skip->address = address;
