@@ -7,9 +7,8 @@
 static void collectGarbage(struct sCollector* collector) {
 #ifdef TRACE_GC
     printf("START GC\n");
-#endif
-
     size_t oldAllocatedBytes = collector->allocatedBytes;
+#endif
 
     // mark stack
     for (Value* stackValue = collector->vm->stack; stackValue < collector->vm->sp; stackValue++) {
@@ -63,8 +62,9 @@ static void collectGarbage(struct sCollector* collector) {
 
     // update threshold
     
-    collector->triggerGCThreshold = (oldAllocatedBytes - collector->allocatedBytes) * GC_TRESHOLD_FACTOR;
+    collector->triggerGCThreshold = collector->allocatedBytes * GC_TRESHOLD_FACTOR;
 #ifdef TRACE_GC
+    printf("freed bytes: %d\n", oldAllocatedBytes - collector->allocatedBytes);
     printf("END GC\n");
 #endif 
 }
