@@ -272,7 +272,7 @@ static int vmRun(VM* vm) {
                     while (len > 0) {
                         Value* key = tmpsp++;
                         Value* value = tmpsp++;
-                        dictPut(vm->collector, dict, key, value);
+                        indexSetDict(vm->collector, dict, key, value);
                         len--;
                     }
                     // no vmPop required due to vm->sp = nextsp

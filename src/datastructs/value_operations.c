@@ -8,9 +8,6 @@
 
 // GC INVARIANT: PARAMETERS PASSED ARE ALREADY ON THE STACK (exceptions are *Safe functions)
 
-// todo: make this file more consistent (indexObject calls helpers, but freeObject does not).
-// Also, indexObject signature is weirder than the others.
-
 ObjError* makeErrorFromStrings(Collector* collector, char* first, ...) {
     va_list args;                                     
     va_start(args, first);
@@ -23,7 +20,7 @@ ObjError* makeErrorFromStrings(Collector* collector, char* first, ...) {
     return error;
 }
 
-static int indexGetArray(Collector* collector, ObjArray* array, Value* index, Value* result) {
+int indexGetArray(Collector* collector, ObjArray* array, Value* index, Value* result) {
     if (!valueInteger(*index)) {
         *result = to_vobj(makeErrorFromStrings(collector, "invalid index for array", NULL));
         return 0;
@@ -38,7 +35,7 @@ static int indexGetArray(Collector* collector, ObjArray* array, Value* index, Va
     return 1;
 }
 
-static int indexSetArray(Collector* collector, ObjArray* array, Value* index, Value* value, Value* result) {
+int indexSetArray(Collector* collector, ObjArray* array, Value* index, Value* value, Value* result) {
     if (!valueInteger(*index)) {
         *result = to_vobj(makeErrorFromStrings(collector, "invalid index for array", NULL));
         return 0;
@@ -53,7 +50,7 @@ static int indexSetArray(Collector* collector, ObjArray* array, Value* index, Va
     return 1;
 }
 
-static int indexGetString(Collector* collector, ObjString* string, Value* index, Value* result) {
+int indexGetString(Collector* collector, ObjString* string, Value* index, Value* result) {
     if (!valueInteger(*index)) {
         *result = to_vobj(makeErrorFromStrings(collector, "invalid index for string", NULL));
         return 0;
@@ -76,7 +73,7 @@ void indexGetObject(Collector* collector, Obj* array, Value* index, Value* resul
                 indexGetArray(collector, (ObjArray*) array, index, result);
                 break;
         case OBJ_DICT:
-                dictGet((ObjDict*) array, index, result);
+                indexGetDict((ObjDict*) array, index, result);
                 break;
         default:
                 *result = to_vobj(makeErrorFromStrings(collector, "object not indexable", NULL));
@@ -90,7 +87,7 @@ void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value
                 indexSetArray(collector, (ObjArray*) array, index, value, result);
                 break;
         case OBJ_DICT:
-                dictPut(collector, (ObjDict*) array, index, value);
+                indexSetDict(collector, (ObjDict*) array, index, value);
                 *result = *value;
                 break;
         default:
@@ -294,12 +291,12 @@ void arrayPush(Collector* collector, ObjArray* array, Value* value) {
     writeValueArray(collector, array->values, *value);
 }
 
-int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value) {
+int indexSetDict(Collector* collector, ObjDict* dict, Value* key, Value* value) {
     int res = mapPut(collector, dict->map, *key, *value);
     return res;
 }
 
-int dictGet(ObjDict* dict, Value* key, Value* result) {
+int indexGetDict(ObjDict* dict, Value* key, Value* result) {
     return mapGet(dict->map, *key, result);
 }
 

@@ -15,8 +15,11 @@ ObjString* vconcatenateMultipleCharArrays(Collector* collector, char* first, va_
 ObjError* makeErrorFromStrings(Collector* collector, char* first, ...);
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
 void arrayPush(Collector* collector, ObjArray* array, Value* value);
-int dictPut(Collector* collector, ObjDict* dict, Value* key, Value* value);
-int dictGet(ObjDict* dict, Value* key, Value* result);
+int indexSetDict(Collector* collector, ObjDict* dict, Value* key, Value* value);
+int indexGetDict(ObjDict* dict, Value* key, Value* result);
+int indexSetArray(Collector* collector, ObjArray* array, Value* index, Value* value, Value* result);
+int indexGetArray(Collector* collector, ObjArray* array, Value* index, Value* result);
+int indexGetString(Collector* collector, ObjString* string, Value* index, Value* result);
 
 
 Value indexGetValue(Collector* collector, Value arrayLike, Value index);
