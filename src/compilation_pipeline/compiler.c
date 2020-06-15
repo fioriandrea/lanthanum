@@ -41,8 +41,10 @@ static void error(Compiler* compiler, Token tok, char* message) {
     }
     if (tok.type != TOK_ERROR) {
         fprintf(stderr, "at '%.*s', ", tok.length, tok.start);
+        fprintf(stderr, "%s\n", message);
+    } else {
+        fprintf(stderr, "%.*s\n", tok.length, tok.start);
     }
-    fprintf(stderr, "%s\n", message);
     compiler->hadError = 1;
     compiler->panic = 1;
 }

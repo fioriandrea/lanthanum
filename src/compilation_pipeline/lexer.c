@@ -215,6 +215,10 @@ static int processIndentation(Lexer* lexer, Token* tok) {
         return 0;
     }
     if (ind_stack_top < spaces) {
+        if (lexer->indentlen + 1 >= INDENT_MAX) {
+            *tok = makeError(lexer, "too much indentation");
+            return 1;
+        }
         lexer->indentlen++;
         ind_stack_top = spaces;
         *tok = makeSpecial(lexer, TOK_INDENT, "INDENT");
