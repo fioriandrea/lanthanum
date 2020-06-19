@@ -9,6 +9,7 @@ typedef struct sValueArray ValueArray;
 typedef enum {
     OBJ_STRING,
     OBJ_FUNCTION,
+    OBJ_NATIVE_FUNCTION,
     OBJ_CLOSURE,
     OBJ_UPVALUE,
     OBJ_ARRAY,
@@ -38,6 +39,14 @@ typedef struct {
     Bytecode* bytecode;
     int upvalueCount;
 } ObjFunction;
+
+typedef Value (*CNativeFunction)(VM* vm, int argcount, Value* args);
+
+typedef struct {
+    Obj obj;
+    ObjString* name;
+    CNativeFunction cfunction;
+} ObjNativeFunction;
 
 struct sObjUpvalue {
     Obj obj;
@@ -75,6 +84,7 @@ ObjString* copyString(Collector* collector, char* chars, int length);
 ObjString* copyNoLengthString(Collector* collector, char* chars);
 ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
+ObjNativeFunction* newNativeFunction(Collector* collector, char* nameChars, CNativeFunction cfunction);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
 ObjArray* newArray(Collector* collector);
@@ -117,6 +127,7 @@ struct sValue {
 
 #define is_string(value) isObjType(value, OBJ_STRING)
 #define is_function(value) isObjType(value, OBJ_FUNCTION)
+#define is_native(value) isObjType(value, OBJ_NATIVE_FUNCTION)
 #define is_closure(value) isObjType(value, OBJ_CLOSURE)
 #define is_upvalue(value) isObjType(value, OBJ_UPVALUE)
 #define is_array(value) isObjType(value, OBJ_ARRAY)
@@ -124,6 +135,8 @@ struct sValue {
 #define is_error(value) isObjType(value, OBJ_ERROR)
 
 #define as_function(value) ((ObjFunction*) as_obj(value))
+#define as_native(value) ((ObjNativeFunction*) as_obj(value))
+#define as_cnative(value) (as_native(value)->cfunction)
 #define as_closure(value) ((ObjClosure*) as_obj(value))
 #define as_upvalue(value) ((ObjUpvalue*) as_obj(value))
 #define as_error(value) ((ObjError*) as_obj(value))

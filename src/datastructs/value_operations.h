@@ -7,6 +7,8 @@
 
 void indexGetObject(Collector* collector, Obj* array, Value* index, Value* result);
 void indexSetObject(Collector* collector, Obj* array, Value* index, Value* value, Value* result);
+ObjString* concatenateCharArrays(Collector* collector, char* s1, char* s2);
+ObjString* concatenateStringsSafe(Collector* collector, ObjString* sa, ObjString* sb);
 ObjString* concatenateStringAndCharArray(Collector* collector, ObjString* str, char* carr);
 ObjString* concatenateStringAndCharArraySafe(Collector* collector, ObjString* str, char* carr);
 ObjString* objectToString(Collector* collector, Obj* obj);
@@ -32,6 +34,7 @@ int valuesIntegers(Value a, Value b);
 int valuesEqual(Value a, Value b); 
 int valuesConcatenable(Value a, Value b); 
 int valuesNumbers(Value a, Value b); 
+int isCallable(Value value);
 Value concatenate(Collector* collector, Value a, Value b); 
 
 #endif

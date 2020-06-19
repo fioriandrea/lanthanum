@@ -10,15 +10,16 @@
 #include "./compilation_pipeline/compiler.h"
 #include "./debug/debug_switches.h"
 #include "./datastructs/value_operations.h"
+#include "./natives/natives_export.h"
 
 #define RUNTIME_ERROR 0
 #define RUNTIME_OK 1
 
-static void resetStack(VM* vm) {
+static void resetStack(struct sVM* vm) {
     vm->sp = vm->stack;
 }
 
-void initVM(VM* vm) {
+void initVM(struct sVM* vm) {
     vm->fp = 0;
     resetStack(vm);
     initMap(&vm->globals);
@@ -26,17 +27,24 @@ void initVM(VM* vm) {
     vm->collector = NULL;
 }
 
-void vmPush(VM* vm, Value val) {
+void vmDeclareNative(struct sVM* vm, char* name, CNativeFunction cfunction) {
+    ObjNativeFunction* native = newNativeFunction(vm->collector, name, cfunction);
+    pushSafeObj(vm->collector, native);
+    mapPut(vm->collector, &vm->globals, to_vobj(native->name), to_vobj(native));
+    popSafe(vm->collector);
+}
+
+void vmPush(struct sVM* vm, Value val) {
     *vm->sp = val;
     vm->sp++;
 }
 
-Value vmPop(VM* vm) {
+Value vmPop(struct sVM* vm) {
     vm->sp--;
     return *vm->sp;
 }
 
-static void runtimeError(VM* vm, char* format, ...) {
+static void runtimeError(struct sVM* vm, char* format, ...) {
     int instruction = vm->frames[vm->fp - 1].pc - vm->frames[vm->fp - 1].closure->function->bytecode->code - 1; 
     int line = lineArrayGet(&vm->frames[vm->fp - 1].closure->function->bytecode->lines, instruction);         
 
@@ -49,11 +57,11 @@ static void runtimeError(VM* vm, char* format, ...) {
     resetStack(vm);                                    
 }    
 
-static Value vmPeek(VM* vm, int depth) {
+static Value vmPeek(struct sVM* vm, int depth) {
     return vm->sp[-(depth + 1)];
 }
 
-static void closeOnStackUpvalue(VM* vm, Value* value) {
+static void closeOnStackUpvalue(struct sVM* vm, Value* value) {
     // todo: this can be optimized
     ObjUpvalue* prev = NULL;
     ObjUpvalue* current = vm->openUpvalues;
@@ -77,7 +85,38 @@ static void closeOnStackUpvalue(VM* vm, Value* value) {
     }
 }
 
-static int vmRun(VM* vm) {
+static int callObject(struct sVM* vm, Obj* called, int argCount) {
+    switch (called->type) {
+        case OBJ_CLOSURE:
+            {
+                ObjClosure* closure = (ObjClosure*) called;
+                ObjFunction* function = closure->function;
+                if (argCount != function->arity) {
+                    runtimeError(vm, "expected %d arguments, got %d", function->arity, argCount);
+                    return 0;
+                }
+                if (vm->fp + 1 >= MAX_FRAMES) {             
+                    runtimeError(vm, "stack overflow");             
+                    return 0;                                
+                } 
+                CallFrame* currentFrame = &vm->frames[vm->fp++];
+                currentFrame->closure = closure;
+                currentFrame->pc = currentFrame->closure->function->bytecode->code;
+                currentFrame->localStack = vm->sp - argCount;
+                return 1;
+            }
+        case OBJ_NATIVE_FUNCTION:
+            {
+                ObjNativeFunction* native = (ObjNativeFunction*) called;
+                Value result = native->cfunction(vm, argCount, vm->sp - argCount);
+                vm->sp = vm->sp - argCount - 1; // -1 to pop off native
+                vmPush(vm, result);
+                return 1;
+            }
+    }
+}
+
+static int vmRun(struct sVM* vm) {
     vm->fp = 1;
     CallFrame* currentFrame = &vm->frames[0];
     OpCode caseCode;
@@ -147,25 +186,15 @@ static int vmRun(VM* vm) {
                         runtimeError(vm, "too many function arguments");
                         return RUNTIME_ERROR;
                     }
-                    Value closureValue = vmPeek(vm, argCount);
-                    if (!is_closure(closureValue)) {
-                        runtimeError(vm, "can only call functions");
+                    Value called = vmPeek(vm, argCount);
+                    if (!isCallable(called)) {
+                        runtimeError(vm, "value is not callable");
                         return RUNTIME_ERROR;
                     }
-                    ObjClosure* closure = as_closure(closureValue);
-                    ObjFunction* function = closure->function;
-                    if (argCount != function->arity) {
-                        runtimeError(vm, "expected %d arguments, got %d", function->arity, argCount);
+                    if (!callObject(vm, as_obj(called), argCount)) {
                         return RUNTIME_ERROR;
                     }
-                    if (vm->fp + 1 >= MAX_FRAMES) {             
-                        runtimeError(vm, "stack overflow");             
-                        return RUNTIME_ERROR;                                
-                    } 
-                    currentFrame = &vm->frames[vm->fp++];
-                    currentFrame->closure = closure;
-                    currentFrame->pc = currentFrame->closure->function->bytecode->code;
-                    currentFrame->localStack = vm->sp - argCount;
+                    currentFrame = &vm->frames[vm->fp - 1];
                     break;
                 }
             case OP_INDEXING_GET:
@@ -552,7 +581,7 @@ static int vmRun(VM* vm) {
 #undef read_constant_long_if
 }
 
-int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
+int vmExecute(struct sVM* vm, Collector* collector, ObjFunction* function) {
     initVM(vm);
     CallFrame* initialFrame = &vm->frames[0];
     initialFrame->closure = newClosure(collector, function);
@@ -563,12 +592,14 @@ int vmExecute(VM* vm, Collector* collector, ObjFunction* function) {
     vm->collector = collector;
     collector->vm = vm;
 
+    declareNatives(vm);
+
     int result = vmRun(vm);
     freeVM(vm);
     return result;
 }
 
-void freeVM(VM* vm) {
+void freeVM(struct sVM* vm) {
 #ifdef TRACE_INTERNED
     printf("INTERNED:\n");
     printMap(&vm->collector->interned);

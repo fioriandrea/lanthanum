@@ -33,7 +33,7 @@ static void dumpObj(Obj* obj) {
             {
                 ObjFunction* function = (ObjFunction*) obj;
                 if (function->name == NULL)
-                    printf("<main script>");
+                    printf("<init>");
                 else
                     printf("<%s function>", function->name->chars);
                 break;
@@ -43,6 +43,12 @@ static void dumpObj(Obj* obj) {
                 ObjClosure* closure = (ObjClosure*) obj;
                 printf("closure ");
                 dumpObj((Obj*) closure->function);
+                break;
+            }
+        case OBJ_NATIVE_FUNCTION:
+            {
+                ObjNativeFunction* native = (ObjNativeFunction*) obj;
+                printf("<%s native function>", native->name->chars);
                 break;
             }
         case OBJ_UPVALUE:

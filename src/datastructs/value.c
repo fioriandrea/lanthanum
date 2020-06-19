@@ -87,6 +87,16 @@ ObjFunction* newFunction(Collector* collector) {
     return function;
 }
 
+ObjNativeFunction* newNativeFunction(Collector* collector, char* nameChars, CNativeFunction cfunction) {
+    ObjString* name = copyNoLengthString(collector, nameChars);
+    pushSafeObj(collector, name);
+    ObjNativeFunction* native = allocate_obj(collector, ObjNativeFunction, OBJ_NATIVE_FUNCTION);
+    popSafe(collector);
+    native->name = name;
+    native->cfunction = cfunction;
+    return native;
+}
+
 ObjClosure* newClosure(Collector* collector, ObjFunction* function) {
     ObjUpvalue** upvalues = allocate_block(collector, ObjUpvalue*, function->upvalueCount);
     for (int i = 0; i < function->upvalueCount; i++)
@@ -157,6 +167,12 @@ void freeObject(Collector* collector, Obj* object) {
                 free_pointer(collector, function, sizeof(ObjFunction));
                 break;
             }      
+        case OBJ_NATIVE_FUNCTION:
+            {
+                ObjNativeFunction* native = (ObjNativeFunction*) object;
+                free_pointer(collector, native, sizeof(ObjNativeFunction));
+                break;
+            }
         case OBJ_CLOSURE:
             {
                 ObjClosure* closure = (ObjClosure*) object;
@@ -216,6 +232,12 @@ void blackenObject(Collector* collector, Obj* obj) {
                 ObjFunction* fn = (ObjFunction*) obj;
                 markObject(collector, (Obj*) fn->name);
                 markBytecode(collector, fn->bytecode);
+                break;
+            }
+        case OBJ_NATIVE_FUNCTION:
+            {
+                ObjNativeFunction* nf = (ObjNativeFunction*) obj;
+                markObject(collector, (Obj*) nf->name);
                 break;
             }
         case OBJ_CLOSURE:

@@ -15,7 +15,7 @@ typedef struct {
     Value* localStack;
 } CallFrame;
 
-typedef struct {
+struct sVM {
     CallFrame frames[MAX_FRAMES];
     int fp;
     Value stack[MAX_STACK];
@@ -23,12 +23,13 @@ typedef struct {
     Collector* collector;
     HashMap globals;
     ObjUpvalue* openUpvalues;
-} VM;
+};
 
-void initVM(VM* vm);
-int vmExecute(VM* vm, Collector* collector, ObjFunction* function);  
-void freeVM(VM* vm);
-void vmPush(VM* vm, Value val);
-Value vmPop(VM* vm);
+void initVM(struct sVM* vm);
+int vmExecute(struct sVM* vm, Collector* collector, ObjFunction* function);  
+void vmDeclareNative(struct sVM* vm, char* name, CNativeFunction cfunction);
+void freeVM(struct sVM* vm);
+void vmPush(struct sVM* vm, Value val);
+Value vmPop(struct sVM* vm);
 
 #endif

@@ -131,6 +131,11 @@ ObjString* concatenateStringsSafe(Collector* collector, ObjString* sa, ObjString
     return result;
 }
 
+ObjString* concatenateCharArrays(Collector* collector, char* s1, char* s2) {
+    ObjString* first = copyNoLengthString(collector, s1);
+    return concatenateStringAndCharArraySafe(collector, first, s2);
+}
+
 ObjString* concatenateStringAndCharArray(Collector* collector, ObjString* str, char* carr) {
     ObjString* second = copyString(collector, carr, strlen(carr));
     return concatenateStringsSafe(collector, str, second);
@@ -183,6 +188,14 @@ ObjString* objectToString(Collector* collector, Obj* obj) {
     switch (obj->type) {
         case OBJ_STRING:
             return ((ObjString*) obj);
+        case OBJ_NATIVE_FUNCTION:
+            {
+                ObjNativeFunction* native = (ObjNativeFunction*) obj;
+                ObjString* result = copyNoLengthString(collector, "<");
+                result = concatenateStringsSafe(collector, result, native->name);
+                result = concatenateStringAndCharArraySafe(collector, result, " native function>"); 
+                return result;
+            }
         case OBJ_FUNCTION:
             {
                 ObjFunction* function = (ObjFunction*) obj;
@@ -375,6 +388,10 @@ int valuesConcatenable(Value a, Value b) {
 
 int valuesNumbers(Value a, Value b) {
     return is_number(a) && is_number(b);
+}
+
+int isCallable(Value value) {
+    return is_closure(value) || is_native(value);
 }
 
 Value concatenate(Collector* collector, Value a, Value b) {

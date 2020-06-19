@@ -7,5 +7,6 @@
 typedef struct sCollector Collector;
 typedef struct sBytecode Bytecode;
 typedef struct sHashMap HashMap;
+typedef struct sVM VM;
 
 #endif
