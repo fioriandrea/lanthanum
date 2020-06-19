@@ -42,6 +42,8 @@ typedef struct {
 
 typedef Value (*CNativeFunction)(VM* vm, Value* args);
 
+// todo: replication of name and arity
+
 typedef struct {
     Obj obj;
     ObjString* name;

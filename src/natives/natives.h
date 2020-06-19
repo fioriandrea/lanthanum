@@ -5,8 +5,13 @@
 
 Value nativeToStr(VM* vm, Value* args);
 Value nativeTypeOf(VM* vm, Value* args);
+Value nativeTypeOfObject(VM* vm, Value* args);
+Value nativeSystem(VM* vm, Value* args);
 
 #define natives_h_declare \
-    vmDeclareNative(vm, 1, "tostr", &nativeToStr);
+    vmDeclareNative(vm, 1, "tostr", &nativeToStr); \
+    vmDeclareNative(vm, 1, "typeof", &nativeTypeOf); \
+    vmDeclareNative(vm, 1, "typeofobj", &nativeTypeOfObject); \
+    vmDeclareNative(vm, 1, "system", &nativeSystem); \
 
 #endif
