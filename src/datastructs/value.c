@@ -87,12 +87,13 @@ ObjFunction* newFunction(Collector* collector) {
     return function;
 }
 
-ObjNativeFunction* newNativeFunction(Collector* collector, char* nameChars, CNativeFunction cfunction) {
+ObjNativeFunction* newNativeFunction(Collector* collector, int arity, char* nameChars, CNativeFunction cfunction) {
     ObjString* name = copyNoLengthString(collector, nameChars);
     pushSafeObj(collector, name);
     ObjNativeFunction* native = allocate_obj(collector, ObjNativeFunction, OBJ_NATIVE_FUNCTION);
     popSafe(collector);
     native->name = name;
+    native->arity = arity;
     native->cfunction = cfunction;
     return native;
 }
@@ -137,6 +138,18 @@ ObjError* newError(Collector* collector, ObjString* message) {
     error->message = message;
     error->payload = NULL;   
     return error;
+}
+
+ObjError* newErrorSafe(Collector* collector, ObjString* message) {
+    pushSafeObj(collector, message);
+    ObjError* error = newError(collector, message);
+    popSafe(collector);
+    return error;
+}
+
+ObjError* newErrorFromCharArray(Collector* collector, char* message) {
+    ObjString* strmsg = copyNoLengthString(collector, message);
+    return newErrorSafe(collector, strmsg);
 }
 
 void closeUpvalue(ObjUpvalue* upvalue) {

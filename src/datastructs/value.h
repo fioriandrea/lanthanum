@@ -40,11 +40,12 @@ typedef struct {
     int upvalueCount;
 } ObjFunction;
 
-typedef Value (*CNativeFunction)(VM* vm, int argcount, Value* args);
+typedef Value (*CNativeFunction)(VM* vm, Value* args);
 
 typedef struct {
     Obj obj;
     ObjString* name;
+    int arity;
     CNativeFunction cfunction;
 } ObjNativeFunction;
 
@@ -84,12 +85,14 @@ ObjString* copyString(Collector* collector, char* chars, int length);
 ObjString* copyNoLengthString(Collector* collector, char* chars);
 ObjString* takeString(Collector* collector, char* chars, int length);
 ObjFunction* newFunction(Collector* collector);
-ObjNativeFunction* newNativeFunction(Collector* collector, char* nameChars, CNativeFunction cfunction);
+ObjNativeFunction* newNativeFunction(Collector* collector, int arity, char* nameChars, CNativeFunction cfunction);
 ObjClosure* newClosure(Collector* collector, ObjFunction* function);
 ObjUpvalue* newUpvalue(Collector* collector, Value* value);
 ObjArray* newArray(Collector* collector);
 ObjDict* newDict(Collector* collector);
 ObjError* newError(Collector* collector, ObjString* message);
+ObjError* newErrorSafe(Collector* collector, ObjString* message);
+ObjError* newErrorFromCharArray(Collector* collector, char* message);
 void closeUpvalue(ObjUpvalue* upvalue);
 void freeObject(Collector* collector, Obj* object);
 void markObject(Collector* collector, Obj* obj);

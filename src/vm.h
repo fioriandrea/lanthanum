@@ -27,7 +27,7 @@ struct sVM {
 
 void initVM(struct sVM* vm);
 int vmExecute(struct sVM* vm, Collector* collector, ObjFunction* function);  
-void vmDeclareNative(struct sVM* vm, char* name, CNativeFunction cfunction);
+void vmDeclareNative(struct sVM* vm, int arity, char* name, CNativeFunction cfunction);
 void freeVM(struct sVM* vm);
 void vmPush(struct sVM* vm, Value val);
 Value vmPop(struct sVM* vm);

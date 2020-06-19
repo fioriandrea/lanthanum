@@ -27,8 +27,8 @@ void initVM(struct sVM* vm) {
     vm->collector = NULL;
 }
 
-void vmDeclareNative(struct sVM* vm, char* name, CNativeFunction cfunction) {
-    ObjNativeFunction* native = newNativeFunction(vm->collector, name, cfunction);
+void vmDeclareNative(struct sVM* vm, int arity, char* name, CNativeFunction cfunction) {
+    ObjNativeFunction* native = newNativeFunction(vm->collector, arity, name, cfunction);
     pushSafeObj(vm->collector, native);
     mapPut(vm->collector, &vm->globals, to_vobj(native->name), to_vobj(native));
     popSafe(vm->collector);
@@ -108,7 +108,11 @@ static int callObject(struct sVM* vm, Obj* called, int argCount) {
         case OBJ_NATIVE_FUNCTION:
             {
                 ObjNativeFunction* native = (ObjNativeFunction*) called;
-                Value result = native->cfunction(vm, argCount, vm->sp - argCount);
+                if (argCount != native->arity) {
+                    runtimeError(vm, "expected %d arguments, got %d", native->arity, argCount);
+                    return 0;
+                }
+                Value result = native->cfunction(vm, vm->sp - argCount);
                 vm->sp = vm->sp - argCount - 1; // -1 to pop off native
                 vmPush(vm, result);
                 return 1;

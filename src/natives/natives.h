@@ -3,9 +3,10 @@
 
 #include "natives_common.h"
 
-Value nativeToStr(VM* vm, int argCount, Value* args);
+Value nativeToStr(VM* vm, Value* args);
+Value nativeTypeOf(VM* vm, Value* args);
 
 #define natives_h_declare \
-    vmDeclareNative(vm, "tostr", &nativeToStr);
+    vmDeclareNative(vm, 1, "tostr", &nativeToStr);
 
 #endif
