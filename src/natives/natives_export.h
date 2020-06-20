@@ -4,7 +4,7 @@
 #include "natives.h"
 
 void declareNatives(VM* vm) {
-    natives_h_declare
+    natives_h_declare(vm)
 }
 
 #endif
