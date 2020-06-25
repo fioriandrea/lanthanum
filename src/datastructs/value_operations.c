@@ -88,10 +88,10 @@ static ObjArray* concatenateArrays(Collector* collector, ObjArray* a, ObjArray* 
     ObjArray* newArr = newArray(collector);
     pushSafeObj(collector, newArr);
     for (int i = 0; i < a->values->count; i++) {
-        arrayPush(collector, newArr, &a->values->values[i]);
+        arrayPush(collector, newArr, a->values->values[i]);
     }
     for (int i = 0; i < b->values->count; i++) {
-        arrayPush(collector, newArr, &b->values->values[i]);
+        arrayPush(collector, newArr, b->values->values[i]);
     }
     popSafe(collector);
     return newArr;
@@ -288,8 +288,61 @@ Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b) {
     }
 }
 
-void arrayPush(Collector* collector, ObjArray* array, Value* value) {
-    writeValueArray(collector, array->values, *value);
+ObjArray* pairList(Collector* collector, Obj* arrayLike) {
+    ObjArray* result = newArray(collector);
+    pushSafeObj(collector, result);
+    switch (arrayLike->type) {
+        case OBJ_STRING:
+            {
+                ObjString* str = (ObjString*) arrayLike;
+                for (int i = 0; i < str->length; i++) {
+                    ObjArray* pair = newArray(collector);
+                    pushSafeObj(collector, pair);
+                    arrayPush(collector, pair, to_vnumber(i));
+                    arrayPush(collector, pair, to_vobj(copyString(collector, str->chars + i, 1)));
+                    arrayPush(collector, result, to_vobj(pair));
+                    popSafe(collector);
+                }
+                break;
+            }
+        case OBJ_ARRAY:
+            {
+                ObjArray* arr = (ObjArray*) arrayLike;
+                for (int i = 0; i < arr->values->count; i++) {
+                    ObjArray* pair = newArray(collector);
+                    pushSafeObj(collector, pair);
+                    arrayPush(collector, pair, to_vnumber(i));
+                    arrayPush(collector, pair, arr->values->values[i]);
+                    arrayPush(collector, result, to_vobj(pair));
+                    popSafe(collector);
+                }
+                break;
+            }
+        case OBJ_DICT:
+            {
+                ObjDict* dict = (ObjDict*) arrayLike;
+                HashMap* map = dict->map;
+                for (int i = 0; i < map->capacity; i++) {
+                    Entry* entry = map->entries[i];
+                    while (entry != NULL) {
+                        ObjArray* pair = newArray(collector);
+                        pushSafeObj(collector, pair);
+                        arrayPush(collector, pair, entry->key);
+                        arrayPush(collector, pair, entry->value);
+                        arrayPush(collector, result, to_vobj(pair));
+                        popSafe(collector);
+                        entry = entry->next;
+                    }
+                }
+                break;
+            }
+    }
+    popSafe(collector);
+    return result;
+}
+
+void arrayPush(Collector* collector, ObjArray* array, Value value) {
+    writeValueArray(collector, array->values, value);
 }
 
 int indexSetDict(Collector* collector, ObjDict* dict, Value* key, Value* value) {
@@ -393,7 +446,7 @@ Value concatenate(Collector* collector, Value a, Value b) {
     return to_vobj(concatenateObjects(collector, as_obj(a), as_obj(b)));
 }
 
-int arrayLength(Obj* obj) {
+int arrayLikeLength(Obj* obj) {
     switch (obj->type) {
         case OBJ_STRING:
             return ((ObjString*) obj)->length;

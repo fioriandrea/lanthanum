@@ -286,7 +286,7 @@ static int vmRun(struct sVM* vm) {
                     Value* tmpsp = nextsp;
                     vmPush(vm, to_vobj(array));
                     while (len > 0) {
-                        arrayPush(vm->collector, array, tmpsp++);
+                        arrayPush(vm->collector, array, *(tmpsp++));
                         len--;
                     }
                     // no vmPop required due to vm->sp = nextsp
