@@ -14,7 +14,6 @@ ObjString* concatenateStringAndCharArraySafe(Collector* collector, ObjString* st
 ObjString* objectToString(Collector* collector, Obj* obj);
 ObjString* concatenateMultipleCharArrays(Collector* collector, char* first, ...);
 ObjString* vconcatenateMultipleCharArrays(Collector* collector, char* first, va_list rest);
-ObjError* makeErrorFromStrings(Collector* collector, char* first, ...);
 Obj* concatenateObjects(Collector* collector, Obj* a, Obj* b);
 void arrayPush(Collector* collector, ObjArray* array, Value* value);
 int indexSetDict(Collector* collector, ObjDict* dict, Value* key, Value* value);
@@ -33,7 +32,9 @@ int valueInteger(Value value);
 int valuesIntegers(Value a, Value b); 
 int valuesEqual(Value a, Value b); 
 int valuesConcatenable(Value a, Value b); 
+int arrayLength(Obj* obj);
 int valuesNumbers(Value a, Value b); 
+int valueIndexable(Value val);
 int isCallable(Value value);
 Value concatenate(Collector* collector, Value a, Value b); 
 
