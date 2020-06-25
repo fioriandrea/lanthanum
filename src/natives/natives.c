@@ -46,7 +46,23 @@ Value nativeTypeOfObject(VM* vm, Value* args) {
 
 Value nativeSystem(VM* vm, Value* args) {
     Value arg = args[0];
-    if (!is_obj(arg) || !is_string(arg))
+    if (!is_string(arg))
         return to_vobj(newErrorFromCharArray(vm->collector, "passed non string to system"));
     return to_vnumber(system(as_cstring(arg)));
+}
+
+Value nativeLen(VM* vm, Value* args) {
+    Value arg = args[0];
+    if (!is_string(arg) && !is_array(arg))
+        return to_vobj(newErrorFromCharArray(vm->collector, "length computable only for strings and arrays"));
+    Obj* obj = as_obj(arg);
+    return to_vnumber(arrayLikeLength(obj));
+}
+
+Value nativePairList(VM* vm, Value* args) {
+    Value arg = args[0];
+    if (!valueIndexable(arg))
+        return to_vobj(newErrorFromCharArray(vm->collector, "value not indexable"));
+    Obj* obj = as_obj(arg);
+    return to_vobj(pairList(vm->collector, obj));
 }
