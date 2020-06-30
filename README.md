@@ -53,7 +53,7 @@ The project structure is indeed similar to the one used in Wren, although there 
 
 ## Types
 
-Lanthanum has 7 built in types:
+Lanthanum has the following built-in types:
 
 ### Booleans 
 
