@@ -1,5 +1,4 @@
-# lanthanum
-Yet another small language
+# Lanthanum
 
 ## Description
 
