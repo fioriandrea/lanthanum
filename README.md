@@ -1,15 +1,15 @@
-# yasl
+# lanthanum
 Yet another small language
 
 ## Description
 
-Yasl is a small, byte code interpreted, garbage collected, Python-like programming language implemented in C.
+Lanthanum is a small, byte code interpreted, garbage collected, Python-like programming language implemented in C.
 The language is dynamically typed, has built-in arrays and dictionaries, closures, higher order functions and other language constructs. 
 The language is an improved version of [lamp](https://github.com/fioriandrea/lamp), so the languages are quite similar. 
 
 ## Project Structure
 
-The code behind Yasl is inspired by [Wren code](https://github.com/wren-lang/wren).
+The code behind Lanthanum is inspired by [Wren code](https://github.com/wren-lang/wren).
 The project structure is indeed similar to the one used in Wren, although there are quite a few differences.
 
 ## Grammar
@@ -54,12 +54,12 @@ The project structure is indeed similar to the one used in Wren, although there 
 
 ## Types
 
-Yasl has 7 built in types:
+Lanthanum has 7 built in types:
 
 ### Booleans 
 
 A boolean value can either be true or false. 
-When checking a condition, YASPL considers nihl and false as false, anything else as true.
+When checking a condition, lanthanum considers nihl and false as false, anything else as true.
 
 ### Nihl
 
@@ -68,7 +68,7 @@ It is treated as false in conditions.
 
 ### Numbers
 
-Every number in Yasl is a floating point number. 
+Every number in Lanthanum is a floating point number. 
 Internally, numbers are rappresented as a C double.
 
 ### Strings
@@ -78,28 +78,28 @@ Since no escaping is supported inside strings, strings can span several lines.
 
 ### Maps
 
-Maps are associative arrays built-in into Yasl. 
+Maps are associative arrays built-in into Lanthanum. 
 Internally they are implemented as hash tables. 
 Maps support nesting.
 
 ### Arrays
 
-Yasl arrays are the basic container type. 
+Lanthanum arrays are the basic container type. 
 They can contain any kind of value and can nest.
 Internally they are implemented as dynamic arrays.
 Arrays are 0 indexed.
 
 ### Functions
 
-Yasl functions are first class citizens. 
+Lanthanum functions are first class citizens. 
 They can be stored in variables, passed to other functions and returned by other functions.
-Yasl supports closures.
+Lanthanum supports closures.
 This means that functions are bound together with their lexical environment.
 Any time that a function is created, it is wrapped inside a closure.
 
 ## Operators
 
-Yasl has the following operators:
+Lanthanum has the following operators:
 
 ### Logical
 

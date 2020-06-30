@@ -1,5 +1,5 @@
 CC=gcc
-TARGET=yasl
+TARGET=lanthanum
 SOURCEDIR=src
 SOURCES=$(wildcard src/*.c) $(wildcard src/*/*.c)
 LFLAGS=-lm
