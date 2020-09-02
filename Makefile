@@ -9,7 +9,7 @@ OBJS=$(SOURCES:.c=.o)
 all: $(SOURCES) $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(LFLAGS) $(OBJS) -o $(TARGET)
+	$(CC) $(OBJS) -o $(TARGET) $(LFLAGS) 
 
 purge: clean
 	rm -f $(TARGET)
