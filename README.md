@@ -6,6 +6,18 @@ Lanthanum is a small, byte code interpreted, garbage collected, Python-like prog
 The language is dynamically typed, has built-in arrays and dictionaries, closures, higher order functions and other language constructs. 
 The language is an improved version of [lamp](https://github.com/fioriandrea/lamp), so the languages are quite similar. 
 
+## Installation
+
+### Arch Linux and Arch-based Distros
+
+On Arch-based linux distros, lanthanum can be installed from the AUR as [lanthanum-git](https://aur.archlinux.org/packages/lanthanum-git/).
+
+Also, if yay is installed on your system, run:
+
+```sh
+yay -S lanthanum-git
+```
+
 ## Project Structure
 
 The code behind Lanthanum is inspired by [Wren code](https://github.com/wren-lang/wren).
