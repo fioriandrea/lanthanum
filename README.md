@@ -12,7 +12,7 @@ The language is an improved version of [lamp](https://github.com/fioriandrea/lam
 
 On Arch-based linux distros, lanthanum can be installed from the AUR as [lanthanum-git](https://aur.archlinux.org/packages/lanthanum-git/).
 
-Also, if yay is installed on your system, run:
+If yay is installed on your system, lanthanum can be installed by running:
 
 ```sh
 yay -S lanthanum-git
