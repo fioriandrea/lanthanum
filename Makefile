@@ -1,4 +1,3 @@
-CC=gcc
 TARGET=lanthanum
 SOURCEDIR=src
 SOURCES=$(wildcard src/*.c) $(wildcard src/*/*.c)
