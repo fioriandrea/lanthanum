@@ -4,12 +4,12 @@
 
 Lanthanum is a small, byte code interpreted, garbage collected, Python-like programming language implemented in C.
 The language is dynamically typed, has built-in arrays and dictionaries, closures, higher order functions and other language constructs. 
-The language is an improved version of [lamp](https://github.com/fioriandrea/lamp), so the languages are quite similar. 
+The language is an improved version of [lamp](https://github.com/fioriandrea/lamp), so the languages are quite similar.
 
 ## Project Structure
 
 The code behind Lanthanum is inspired by [Wren code](https://github.com/wren-lang/wren) and many of the ideas implemented come from [Crafting Interpreters](https://craftinginterpreters.com).
-The project structure is indeed similar to the one used in Wren (and Clox), although there are quite a few differences.
+The project structure is indeed similar to the one used in Wren (and Clox) (since many of the language features' impementations come directly from [lox](https://github.com/munificent/craftinginterpreters)), although there are quite a few differences.
 
 ## Installation
 
