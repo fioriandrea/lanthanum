@@ -25,6 +25,7 @@
 static void expression(Compiler* compiler);
 static void nonCommaExpression(Compiler* compiler);
 static void statement(Compiler* compiler);
+static void synchronize(Compiler* compiler);
 
 static inline Bytecode* compilingBytecode(Compiler* compiler) {
     return compiler->scope->function->bytecode;
@@ -923,6 +924,8 @@ static void statement(Compiler* compiler) {
             expressionStat(compiler);
             break;
     }
+    if (compiler->panic)
+        synchronize(compiler);
 }
 
 static void statementList(Compiler* compiler) {
@@ -944,6 +947,25 @@ ObjFunction* compile(Compiler* compiler, Collector* collector, char* source) {
     statementList(compiler);
     freeLexer(&compiler->lexer);
     return !compiler->hadError ? popScope(compiler) : NULL;
+}
+
+static void synchronize(Compiler* compiler) {
+    compiler->panic = 0;
+    while (currentTokenType(compiler) != EOF) {
+        if (previousTokenType(compiler) == TOK_NEW_LINE)
+            break;
+        switch (currentTokenType(compiler)) {
+            case TOK_FUNC:
+            case TOK_LET:
+            case TOK_PRINT:
+            case TOK_RET:
+            case TOK_BREAK:
+            case TOK_CONTINUE:
+                break;
+
+        }
+        advance(compiler);
+    }
 }
 
 void freeCompiler(Compiler* compiler) {
